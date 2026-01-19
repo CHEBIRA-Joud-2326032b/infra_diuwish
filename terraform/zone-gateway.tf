@@ -3,7 +3,7 @@ module "gateway_01" {
   source = "./modules/vm_template"
 
   vm_name     = "gateway-1"
-  vm_id       = 101
+  vm_id       = 1
   target_node = var.node
   template_id = var.template_id
   tags        = ["gateway"]
@@ -27,7 +27,7 @@ module "gateway_02" {
   source = "./modules/vm_template"
 
   vm_name     = "gateway-2"
-  vm_id       = 102
+  vm_id       = 2
   target_node = var.node
   template_id = var.template_id
   tags        = ["gateway"]

@@ -2,8 +2,8 @@
 module "pbs_server" {
   source = "./modules/vm_template"
 
-  vm_name     = "srv-backup-pbs"
-  vm_id       = 410
+  vm_name     = "backup"
+  vm_id       = 411
   target_node = var.node
   template_id = var.template_id
   tags        = ["backup"]

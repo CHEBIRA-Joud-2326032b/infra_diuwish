@@ -3,10 +3,10 @@ module "soc" {
   source = "./modules/vm_template"
 
   vm_name     = "soc"
-  vm_id       = 202
+  vm_id       = 211
   target_node = var.node
   template_id = var.template_id
-  tags        = ["ops", "security", "heavy"]
+  tags        = ["soc"]
 
   cores              = 2
   memory             = 4096 # Wazuh a faim

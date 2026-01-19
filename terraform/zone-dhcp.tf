@@ -2,7 +2,7 @@
 module "dhcp_01" {
   source = "./modules/vm_template"
   vm_name     = "dhcp-1"
-  vm_id       = 121
+  vm_id       = 101
   target_node = var.node
   template_id = var.template_id
   tags        = ["dhcp"]
@@ -21,7 +21,7 @@ module "dhcp_01" {
 module "dhcp_02" {
   source = "./modules/vm_template"
   vm_name     = "dhcp-2"
-  vm_id       = 122
+  vm_id       = 102
   target_node = var.node
   template_id = var.template_id
   tags        = ["dhcp"]

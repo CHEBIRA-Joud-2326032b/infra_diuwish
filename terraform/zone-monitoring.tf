@@ -3,7 +3,7 @@ module "monitoring" {
   source = "./modules/vm_template"
 
   vm_name     = "monitoring"
-  vm_id       = 203
+  vm_id       = 221
   target_node = var.node
   template_id = var.template_id
   tags        = ["monitoring"]
