@@ -20,3 +20,13 @@ variable "default_ci_user" {
   default = "admin_infra"
 
 }
+
+variable "node" {
+  type    = string
+  default = "pve"
+}
+
+variable "template_id" {
+  type    = number
+  default = 8888
+}
