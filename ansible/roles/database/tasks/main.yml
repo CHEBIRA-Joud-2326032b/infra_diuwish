@@ -1,0 +1,51 @@
+---
+# 1. Installation des paquets
+- name: Installer PostgreSQL et les dépendances Python
+  apt:
+    name:
+      - postgresql-{{ postgresql_version }}
+      - postgresql-contrib
+      - python3-psycopg2  # Obligatoire pour le module Ansible postgresql
+      - acl               # Nécessaire pour devenir l'user 'postgres'
+    state: present
+    update_cache: yes
+
+# 2. Configuration des fichiers (appelle le handler si modif)
+- name: Configurer postgresql.conf (Écoute réseau)
+  template:
+    src: postgresql.conf.j2
+    dest: "/etc/postgresql/{{ postgresql_version }}/main/postgresql.conf"
+    owner: postgres
+    group: postgres
+  notify: Restart Postgres
+
+- name: Configurer pg_hba.conf (Autorisations réseau)
+  template:
+    src: pg_hba.conf.j2
+    dest: "/etc/postgresql/{{ postgresql_version }}/main/pg_hba.conf"
+    owner: postgres
+    group: postgres
+  notify: Restart Postgres
+
+- name: Démarrer le service PostgreSQL
+  service:
+    name: postgresql
+    state: started
+    enabled: yes
+
+# 3. Création de la Base de Données et de l'Utilisateur
+# On utilise 'become_user: postgres' car seul lui a le droit de créer des DB au début
+- name: Créer l'utilisateur de base de données
+  community.postgresql.postgresql_user:
+    name: "{{ db_user }}"
+    password: "{{ db_password }}"
+    role_attr_flags: CREATEDB,NOSUPERUSER
+  become: yes
+  become_user: postgres
+
+- name: Créer la base de données
+  community.postgresql.postgresql_db:
+    name: "{{ db_name }}"
+    owner: "{{ db_user }}"
+  become: yes
+  become_user: postgres

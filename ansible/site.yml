@@ -1,0 +1,11 @@
+# 1. Configuration commune à toutes les machines
+- hosts: all
+  become: yes
+  roles:
+    - common
+
+# 2. Configuration database
+- hosts: databases
+  become: yes
+  roles:
+    - database
