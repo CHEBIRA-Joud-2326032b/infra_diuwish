@@ -1,0 +1,4 @@
+- name: Redémarrer PowerDNS #au cas ou la config change
+  service:
+    name: pdns
+    state: restarted

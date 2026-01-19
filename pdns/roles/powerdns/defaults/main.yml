@@ -1,0 +1,7 @@
+# Infos pour MariaDB
+db_name: "powerdns"
+db_user: "pdns_user"
+db_password: "root"
+
+master_ip: "192.168.1.10"
+slave_ip: "192.168.1.11"

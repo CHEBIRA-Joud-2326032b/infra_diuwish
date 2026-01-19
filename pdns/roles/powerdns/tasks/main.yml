@@ -1,0 +1,51 @@
+---
+- name: MariaDB PowerDNS install
+  apt:
+    name: 
+      - mariadb-server
+      - pdns-server
+      - pdns-backend-mysql
+      - python3-mysqldb  
+    state: present
+    update_cache: yes
+
+- name: create bd
+  mysql_db:
+    name: "{{ db_name }}"
+    state: present
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+
+- name: create db user
+  mysql_user:
+    name: "{{ db_user }}"
+    password: "{{ db_password }}"
+    priv: "{{ db_name }}.*:ALL"
+    state: present
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+
+- name: Vérifier si les tables existent
+  mysql_query:
+    db: "{{ db_name }}"
+    query: "SHOW TABLES;"
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+  register: db_tables
+
+- name: Importer le schéma SQL si la base est vide
+  mysql_db:
+    name: "{{ db_name }}"
+    state: import
+    target: /usr/share/doc/pdns-backend-mysql/schema.mysql.sql
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+  when: db_tables.query_result[0] | length == 0
+
+- name: Envoyer le fichier de config
+  template:
+    src: pdns.conf.j2
+    dest: /etc/powerdns/pdns.conf
+  notify: Redémarrer PowerDNS
+
+- name: Lancer PowerDNS
+  service:
+    name: pdns
+    state: started
+    enabled: yes

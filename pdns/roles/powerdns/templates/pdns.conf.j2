@@ -1,0 +1,16 @@
+launch=gmysql
+gmysql-host=127.0.0.1
+gmysql-user={{ db_user }}
+gmysql-password={{ db_password }}
+gmysql-dbname={{ db_name }}
+
+# Configuration par rôle
+{% if inventory_hostname in groups['master'] %}
+master=yes
+slave=no
+allow-axfr-ips={{ slave_ip }}
+{% else %}
+master=no
+slave=yes
+superslave=yes
+{% endif %}
