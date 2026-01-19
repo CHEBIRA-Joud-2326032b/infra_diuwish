@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  # Service Base de Données
+  db:
+    image: postgres:15-alpine
+    container_name: diu-wish-db
+    restart: always
+    environment:
+      # Ces valeurs doivent correspondre à celles de ton .env
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: api_bancaire
+    ports:
+      - "5432:5432" # Permet d'accéder à la DB depuis ton PC (via DBeaver par ex)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Pour ne pas perdre les données si on coupe le container
+
+  # Service API (Ton Backend Go)
+  api:
+    build: ./Backend # Chemin vers le dossier contenant le Dockerfile
+    container_name: diu-wish-api
+    restart: always
+    depends_on:
+      - db # Attend que le conteneur DB soit lancé (mais pas forcément prêt, d'où tes 5 tentatives)
+    ports:
+      - "8080:8080" # Accessible sur http://localhost:8080
+    environment:
+      # C'EST ICI QUE L'ÉCRASEMENT SE FAIT
+      # Docker remplace "localhost" par "db" (le nom du service ci-dessus)
+      DB_HOST: db
+      # Les autres variables sont lues depuis le fichier .env copié dans le Dockerfile
+      # Mais tu pourrais aussi les surcharger ici si besoin
+
+volumes:
+  postgres_data:
