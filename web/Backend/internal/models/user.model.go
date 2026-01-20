@@ -1,16 +1,22 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type User struct {
-	ID        int       `gorm:"primaryKey" json:"id"`
-	LastName  string    `json:"lastname"`
-	FirstName string    `json:"firstname"`
-	Email     string    `gorm:"unique" json:"email"`
-	Password  string    `json:"-"`
-	Phone     string    `json:"phone"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        int            `gorm:"primaryKey" json:"id"`
+	LastName  string         `json:"lastname"`
+	FirstName string         `json:"firstname"`
+	Email     string         `gorm:"unique" json:"email"`
+	Password  string         `json:"-"`
+	Phone     string         `json:"phone"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
+	Accounts  []Account      `gorm:"foreignKey:UserID" json:"accounts"`
 }
 
 type RegisterInput struct {

@@ -23,9 +23,17 @@ func setupRouter(db *gorm.DB) *gin.Engine {
 	router.Use(cors.New(config)) */
 	// -----------------------------------------
 
+	// ------------Account functions---------------
+	accountRepository := repository.AccountRepositoryInit(db)
+	accountService := service.AccountServiceInit(accountRepository)
+	accountHandler := handlers.AccountHandlerInit(accountService)
+
+	routes.SetupAccountRoutes(router, accountHandler)
+	// -----------------------------------------
+
 	// ------------User functions---------------
 	userRepository := repository.UserRepositoryInit(db)
-	userService := service.UserServiceInit(userRepository)
+	userService := service.UserServiceInit(userRepository, accountService)
 	userHandler := handlers.UserHandlerInit(userService)
 
 	routes.SetupUserRoutes(router, userHandler)
