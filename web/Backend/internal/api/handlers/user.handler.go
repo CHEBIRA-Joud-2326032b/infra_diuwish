@@ -21,20 +21,13 @@ func UserHandlerInit(service *service.UserService) *UserHandler {
 func (h *UserHandler) HandleRegister(c *gin.Context) {
 	var input models.RegisterInput
 
-	err := c.ShouldBindJSON(&input)
-	if len(input.Password) < 8 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "error",
-			"message": "Mot de passe pas assez long",
-		})
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utils.Error(c, http.StatusBadRequest, "Données manquantes ou format invalide")
 		return
 	}
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "error",
-			"message": "Données manquantes ou invalides",
-			"error":   err.Error(),
-		})
+
+	if len(input.Password) < 8 {
+		utils.Error(c, http.StatusBadRequest, "Le mot de passe doit contenir au moins 8 caractères")
 		return
 	}
 
@@ -49,47 +42,31 @@ func (h *UserHandler) HandleRegister(c *gin.Context) {
 	errService := h.service.Register(&userToCreate, c.Request.Context())
 	if errService != nil {
 		if errors.Is(errService, utils.ErrDuplicate) {
-			c.JSON(http.StatusConflict, gin.H{"error": "Cet email existe déjà"})
+			utils.Error(c, http.StatusConflict, "Cet email est déjà utilisé")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur serveur"})
+		utils.Error(c, http.StatusInternalServerError, "Une erreur interne est survenue")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Utilisateur créé",
-		"user":    userToCreate,
-	})
+	utils.Success(c, http.StatusCreated, "Compte créé avec succès", userToCreate)
 }
 
 func (h *UserHandler) HandleLogin(c *gin.Context) {
 	var input models.LoginInput
 
-	err := c.ShouldBindJSON(&input)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "error",
-			"message": "Données manquantes ou invalides",
-			"error":   err.Error(),
-		})
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utils.Error(c, http.StatusBadRequest, "Format des données invalide")
 		return
 	}
 
 	user, errService := h.service.Authenticate(input.Email, input.Password, c.Request.Context())
 	if errService != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "error",
-			"message": "Données invalides",
-		})
+		utils.Error(c, http.StatusUnauthorized, "Email ou mot de passe incorrect")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"status":  "ok",
-		"message": "Connexion réussie",
-		"user":    user,
-	})
-
+	utils.Success(c, http.StatusOK, "Connexion réussie", user)
 }
 
 func (h *UserHandler) HandleGetUser(c *gin.Context) {
@@ -97,15 +74,9 @@ func (h *UserHandler) HandleGetUser(c *gin.Context) {
 
 	user, errService := h.service.GetProfile(id, c.Request.Context())
 	if errService != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "error",
-			"message": errService,
-		})
+		utils.Error(c, http.StatusNotFound, "Utilisateur introuvable")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"status": "ok",
-		"user":   user,
-	})
+	utils.Success(c, http.StatusOK, "Profil récupéré", user)
 }
