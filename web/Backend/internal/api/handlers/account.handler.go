@@ -3,6 +3,7 @@ package handlers
 import (
 	"Diu-Wish/internal/api/service"
 	"Diu-Wish/internal/models"
+	"Diu-Wish/internal/utils"
 	"net/http"
 	"strconv"
 
@@ -22,24 +23,21 @@ func (h *AccountHandler) HandleDeposit(c *gin.Context) {
 
 	intID, err := strconv.Atoi(id)
 	if err != nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status":  "error",
-			"message": "Conversion de l'id impossible",
-		})
+		utils.Error(c, http.StatusBadRequest, "L'ID du compte doit être un string")
+		return
 	}
 
 	var input models.DepositInput
-
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.Error(c, http.StatusBadRequest, "Le montant est invalide ou manquant")
 		return
 	}
 
 	errService := h.service.Deposit(intID, input.Amount, c.Request.Context())
 	if errService != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": errService.Error()})
+		utils.Error(c, http.StatusBadRequest, errService.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Dépôt effectué avec succès"})
+	utils.Success(c, http.StatusOK, "Dépôt effectué avec succès", nil)
 }
