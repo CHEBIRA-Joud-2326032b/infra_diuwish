@@ -49,3 +49,18 @@
     name: pdns
     state: started
     enabled: yes
+
+- name: Créer la zone DNS principale
+  command: "pdnsutil create-zone {{ zone_name }} ns1.{{ zone_name }}"
+  when: inventory_hostname in groups['master']
+  register: zone_result
+  failed_when: false
+  changed_when: "'Creating' in zone_result.stdout"
+
+# On ajoute tous les enregistrements de la liste sur le Master
+- name: Ajouter les enregistrements DNS
+  command: "pdnsutil replace-rrset {{ zone_name }} {{ item.name }} A 3600 {{ item.ip }}"
+  loop: "{{ dns_records }}"
+  when: inventory_hostname in groups['master']
+  register: record_result
+  changed_when: "'replaced' in record_result.stdout or 'added' in record_result.stdout"
