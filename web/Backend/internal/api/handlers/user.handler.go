@@ -14,8 +14,8 @@ type UserHandler struct {
 	service *service.UserService
 }
 
-func UserHandlerInit(service service.UserService) *UserHandler {
-	return &UserHandler{&service}
+func UserHandlerInit(service *service.UserService) *UserHandler {
+	return &UserHandler{service}
 }
 
 func (h *UserHandler) HandleRegister(c *gin.Context) {
@@ -75,8 +75,8 @@ func (h *UserHandler) HandleLogin(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.Authenticate(input.Email, input.Password, c.Request.Context())
-	if err != nil {
+	user, errService := h.service.Authenticate(input.Email, input.Password, c.Request.Context())
+	if errService != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "error",
 			"message": "Données invalides",
@@ -90,4 +90,22 @@ func (h *UserHandler) HandleLogin(c *gin.Context) {
 		"user":    user,
 	})
 
+}
+
+func (h *UserHandler) HandleGetUser(c *gin.Context) {
+	id := c.Param("id")
+
+	user, errService := h.service.GetProfile(id, c.Request.Context())
+	if errService != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": errService,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "ok",
+		"user":   user,
+	})
 }

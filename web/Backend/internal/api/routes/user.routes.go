@@ -9,4 +9,5 @@ import (
 func SetupUserRoutes(router *gin.Engine, handler *handlers.UserHandler) {
 	router.POST("/register", handler.HandleRegister)
 	router.POST("/login", handler.HandleLogin)
+	router.GET("/users/:id", handler.HandleGetUser)
 }

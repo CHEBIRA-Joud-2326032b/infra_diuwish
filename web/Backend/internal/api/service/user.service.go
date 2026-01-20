@@ -10,11 +10,12 @@ import (
 )
 
 type UserService struct {
-	repo *repository.UserRepository
+	repo           *repository.UserRepository
+	accountService *AccountService
 }
 
-func UserServiceInit(repo repository.UserRepository) UserService {
-	return UserService{&repo}
+func UserServiceInit(repo *repository.UserRepository, accountService *AccountService) *UserService {
+	return &UserService{repo, accountService}
 }
 
 func (s *UserService) Register(user *models.User, ctx context.Context) error {
@@ -27,6 +28,11 @@ func (s *UserService) Register(user *models.User, ctx context.Context) error {
 	user.Password = hashedPassword
 
 	errRepo := s.repo.Save(user, ctx)
+	if errRepo != nil {
+		return errRepo
+	}
+
+	errRepo = s.accountService.CreateDefaultAccount(user.ID, ctx)
 	if errRepo != nil {
 		return errRepo
 	}
@@ -44,6 +50,15 @@ func (s *UserService) Authenticate(email string, password string, ctx context.Co
 	err := comparePassword(user.Password, password)
 	if err != nil {
 		return nil, err
+	}
+
+	return user, nil
+}
+
+func (s *UserService) GetProfile(id string, ctx context.Context) (*models.User, error) {
+	user, errRepo := s.repo.FindByID(id, ctx)
+	if errRepo != nil {
+		return nil, errRepo
 	}
 
 	return user, nil
