@@ -1,11 +1,7 @@
 {
     "Dhcp4": {
         "interfaces-config": {
-            "interfaces": [
-                {% for iface in kea_interfaces %}
-                "{{ iface }}"{% if not loop.last %},{% endif %}
-                {% endfor %}
-            ]
+            "interfaces": [{% for iface in kea_interfaces %}"{{ iface }}"{% if not loop.last %}, {% endif %}{% endfor %}]
         },
         "lease-database": {
             "type": "memfile",
