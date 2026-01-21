@@ -1,0 +1,56 @@
+{
+    "Dhcp4": {
+        "interfaces-config": {
+            "interfaces": [
+                {% for iface in kea_interfaces %}
+                "{{ iface }}"{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ]
+        },
+        "lease-database": {
+            "type": "memfile",
+            "persist": true,
+            "name": "{{ kea_lease_file }}"
+        },
+        "valid-lifetime": {{ kea_valid_lifetime }},
+        "loggers": [
+            {
+                "name": "kea-dhcp4",
+                "severity": "{{ kea_log_severity }}",
+                "output-options": [
+                    {
+                        "output": "{{ kea_log_file }}"
+                    }
+                ]
+            }
+        ],
+        "subnet4": [
+{% for subnet in kea_subnets %}
+            {
+                "id": {{ subnet.id }},
+                "subnet": "{{ subnet.subnet }}",
+{% if subnet.pool_start and subnet.pool_end %}
+                "pools": [{"pool": "{{ subnet.pool_start }} - {{ subnet.pool_end }}"}],
+{% else %}
+                "pools": [],
+{% endif %}
+                "option-data": [
+                    {"name": "routers", "data": "{{ subnet.gateway }}"}
+{% if subnet.use_global_dns | default(false) %}
+                    ,{"name": "domain-name-servers", "data": "{{ kea_dns_servers }}"}
+{% endif %}
+                ]
+{% if subnet.reservations | default([]) | length > 0 %}
+                ,"reservations": [
+{% for res in subnet.reservations %}
+                    {"hw-address": "{{ res.mac }}", "ip-address": "{{ res.ip }}", "hostname": "{{ res.hostname }}"}{% if not loop.last %},{% endif %}
+
+{% endfor %}
+                ]
+{% endif %}
+            }{% if not loop.last %},{% endif %}
+
+{% endfor %}
+        ]
+    }
+}

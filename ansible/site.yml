@@ -9,3 +9,10 @@
   become: yes
   roles:
     - database
+
+# 3. Configuration Kea DHCP Servers
+- name: Configuration de l'infrastructure DHCP
+  hosts: dhcp_servers
+  become: yes
+  roles:
+    - kea_dhcp
