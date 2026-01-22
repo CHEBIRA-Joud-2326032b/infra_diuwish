@@ -65,3 +65,4 @@
   become: yes
   roles:
     - prometheus_server
+    - grafana   
