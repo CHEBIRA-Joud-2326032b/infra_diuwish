@@ -1,0 +1,46 @@
+---
+
+- name: Installer WireGuard
+  apt:
+    name: wireguard
+    state: present
+    update_cache: yes
+
+- name: Activer l'IP Forwarding (Routage)
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    state: present
+    reload: yes
+
+# 3. Générer la clé privée du serveur (si elle n'existe pas déjà)
+- name: Vérifier si la clé privée existe déjà
+  stat:
+    path: /etc/wireguard/server.key
+  register: server_key_file
+
+- name: Générer la clé privée du serveur
+  shell: wg genkey > /etc/wireguard/server.key
+  when: not server_key_file.stat.exists
+
+- name: Lire la clé privée pour la configuration
+  slurp:
+    src: /etc/wireguard/server.key
+  register: server_private_key_base64
+
+- name: Créer la clé publique à partir de la clé privée
+  shell: "cat /etc/wireguard/server.key | wg pubkey > /etc/wireguard/server.pub"
+  changed_when: false
+
+- name: Déployer la configuration wg0.conf
+  template:
+    src: wg0.conf.j2
+    dest: /etc/wireguard/wg0.conf
+    mode: '0600'
+  notify: Restart WireGuard
+
+- name: Lancer WireGuard
+  systemd:
+    name: wg-quick@wg0
+    enabled: yes
+    state: started

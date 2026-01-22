@@ -1,0 +1,28 @@
+---
+- name: Installer Suricata
+  apt:
+    name: suricata
+    state: present
+    update_cache: yes
+
+- name: Installer suricata-update
+  apt:
+    name: suricata-update
+    state: present
+
+- name: Configurer Suricata
+  template:
+    src: suricata.yaml.j2
+    dest: /etc/suricata/suricata.yaml
+  notify: Restart Suricata
+
+- name: Mettre à jour les règles de détection
+  command: suricata-update
+  register: rules_update
+  changed_when: '"Writing rules" in rules_update.stdout'
+
+- name: S'assurer que Suricata est lancé et activé
+  systemd:
+    name: suricata
+    enabled: yes
+    state: started
