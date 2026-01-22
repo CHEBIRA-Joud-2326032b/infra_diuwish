@@ -8,6 +8,8 @@ module "db_primary" {
   template_id = var.template_id
   tags        = ["data"]
 
+  ci_user = var.default_ci_user
+
   cores              = 2
   memory             = 1536
   disable_ballooning = true # Vital pour Postgres
@@ -27,6 +29,8 @@ module "db_standby" {
   target_node = var.node
   template_id = var.template_id
   tags        = ["data"]
+
+  ci_user = var.default_ci_user
 
   cores              = 2
   memory             = 1536

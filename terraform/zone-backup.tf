@@ -8,6 +8,8 @@ module "pbs_server" {
   template_id = var.template_id
   tags        = ["backup"]
 
+  ci_user = var.default_ci_user
+
   cores     = 1
   memory    = 1024
   disk_size = 100 # Gros disque pour stocker les sauvegardes
@@ -16,4 +18,5 @@ module "pbs_server" {
   ip_address     = "10.0.40.21/24"
   gateway        = "10.0.40.1"
   ssh_public_key = var.ssh_public_key
+
 }

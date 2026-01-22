@@ -8,6 +8,8 @@ module "soc" {
   template_id = var.template_id
   tags        = ["soc"]
 
+  ci_user = var.default_ci_user
+
   cores              = 2
   memory             = 4096 # Wazuh a faim
   disable_ballooning = true # Vital pour Java

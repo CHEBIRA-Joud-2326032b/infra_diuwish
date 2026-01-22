@@ -6,7 +6,7 @@ variable "vm_name" {
 variable "target_node" {
   description = "Le nom du noeud Proxmox (ex: pve)"
   type        = string
-  default     = "pve"
+  default     = "node1"
 }
 
 variable "vm_id" {
@@ -85,4 +85,10 @@ variable "disable_ballooning" {
   description = "Si true, empêche Proxmox de réduire la RAM de la VM"
   type        = bool
   default     = false
+}
+
+variable "pool_id" {
+  type        = string
+  description = "Resource Pool (ex: Groupe67-B2)"
+  default     = "Groupe67-B2"
 }

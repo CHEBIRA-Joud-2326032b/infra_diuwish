@@ -23,10 +23,10 @@ variable "default_ci_user" {
 
 variable "node" {
   type    = string
-  default = "pve"
+  default = "node1"
 }
 
 variable "template_id" {
   type    = number
-  default = 8888
+  default = 8800
 }

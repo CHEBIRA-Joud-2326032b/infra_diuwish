@@ -8,6 +8,8 @@ module "gateway_01" {
   template_id = var.template_id
   tags        = ["gateway"]
 
+  ci_user = var.default_ci_user
+
   cores  = 2
   memory = 1024
 

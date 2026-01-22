@@ -39,3 +39,16 @@ func (s *AccountService) Deposit(accountID int, amount float64, ctx context.Cont
 
 	return nil
 }
+
+func (s *AccountService) Withdraw(accountID int, amount float64, ctx context.Context) error {
+	if amount <= 0 {
+		return errors.New("Le montant doit être positif")
+	}
+
+	errRepo := s.repo.UpdateBalance(accountID, -amount, ctx)
+	if errRepo != nil {
+		return errRepo
+	}
+
+	return nil
+}
