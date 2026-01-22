@@ -1,0 +1,5 @@
+- hosts: gateways
+  become: yes
+  roles:
+    - wireguard
+    - suricata # On ajoute Suricata après le VPN

@@ -1,0 +1,5 @@
+---
+- name: Restart Suricata
+  systemd:
+    name: suricata
+    state: restarted
