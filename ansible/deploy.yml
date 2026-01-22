@@ -1,0 +1,68 @@
+---
+
+# 1. TOUTES LES MACHINES (Configuration universelle)
+
+- name: Configuration de base et monitoring matériel
+  hosts: all
+  become: yes
+  roles:
+    - common
+    - node_exporter
+
+
+# 2. BASES DE DONNÉES 
+
+- name: Configuration des serveurs POSTGRESQL
+  hosts: databases
+  become: yes
+  roles:
+    - database
+
+# 3. GATEWAYS (Sécurité et VPN)
+
+- name: Configuration des Gateways (VPN et IDS/IPS)
+  hosts: gateways
+  become: yes
+  vars:
+    monitored_processes:
+      - suricata
+  roles:
+    - wireguard
+    - suricata
+    - process_exporter
+
+
+# 4. DNS (PowerDNS)
+ 
+- name: Configuration de l'infrastructure DNS
+  hosts: dns
+  become: yes
+  vars:
+    monitored_processes:
+      - pdns_server
+  roles:
+    - powerdns
+    - process_exporter
+
+# 5. DHCP (Kea)
+
+- name: Configuration de l'infrastructure DHCP
+  hosts: dhcp_servers
+  become: yes
+  vars:
+    monitored_processes:
+      - kea-dhcp4
+      - kea-ctrl-agent
+  roles:
+    - kea_dhcp
+    - kea_exporter
+    - process_exporter
+
+  # 6 Monitoring Server
+
+- name: Configuration du serveur de Monitoring
+  hosts: monitor
+  become: yes
+  roles:
+    - prometheus_server
+    - grafana   

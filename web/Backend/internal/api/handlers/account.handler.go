@@ -27,7 +27,7 @@ func (h *AccountHandler) HandleDeposit(c *gin.Context) {
 		return
 	}
 
-	var input models.DepositInput
+	var input models.TransactionInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utils.Error(c, http.StatusBadRequest, "Le montant est invalide ou manquant")
 		return
@@ -40,4 +40,28 @@ func (h *AccountHandler) HandleDeposit(c *gin.Context) {
 	}
 
 	utils.Success(c, http.StatusOK, "Dépôt effectué avec succès", nil)
+}
+
+func (h *AccountHandler) HandleWithdraw(c *gin.Context) {
+	id := c.Param("id")
+
+	intID, err := strconv.Atoi(id)
+	if err != nil {
+		utils.Error(c, http.StatusBadRequest, "L'ID du compte doit être un string")
+		return
+	}
+
+	var input models.TransactionInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utils.Error(c, http.StatusBadRequest, "Le montant est invalide ou manquant")
+		return
+	}
+
+	errService := h.service.Withdraw(intID, input.Amount, c.Request.Context())
+	if errService != nil {
+		utils.Error(c, http.StatusBadRequest, errService.Error())
+		return
+	}
+
+	utils.Success(c, http.StatusOK, "Retrait effectué avec succès", nil)
 }

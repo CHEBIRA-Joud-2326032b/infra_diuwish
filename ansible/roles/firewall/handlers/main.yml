@@ -1,0 +1,14 @@
+---
+# =============================================================================
+# FIREWALL ROLE - Handlers
+# =============================================================================
+
+- name: reload nftables
+  systemd:
+    name: nftables
+    state: reloaded
+
+- name: restart nftables
+  systemd:
+    name: nftables
+    state: restarted

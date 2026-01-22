@@ -1,4 +1,0 @@
-- hosts: gateways
-  become: yes
-  roles:
-    - wireguard

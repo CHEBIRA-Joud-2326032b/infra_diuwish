@@ -1,0 +1,197 @@
+#!/usr/sbin/nft -f
+# =============================================================================
+# NFTABLES CONFIGURATION - RKE2 MASTER (Kubernetes Control Plane)
+# Machines: rke2-master-1 (10.0.30.11), rke2-master-2 (.12), rke2-master-3 (.13)
+# VLAN: 30 (APP)
+# =============================================================================
+#
+# ATTENTION: Le CNI (Calico, Cilium, Flannel) peut gérer ses propres règles.
+# Cette config est un "Host Firewall" qui protège le node sans casser le CNI.
+#
+# =============================================================================
+
+flush ruleset
+
+# -----------------------------------------------------------------------------
+# VARIABLES
+# -----------------------------------------------------------------------------
+define LAN_IF = eth0
+
+# Réseaux
+define MGMT_NET = 10.0.20.0/24
+define APP_NET = 10.0.30.0/24
+define DATA_NET = 10.0.40.0/24
+define ALL_VLANS = 10.0.0.0/16
+
+# Cluster RKE2 - Tous les nodes
+define RKE2_MASTERS = { 10.0.30.11, 10.0.30.12, 10.0.30.13 }
+define RKE2_WORKERS = { 10.0.30.21, 10.0.30.22 }
+define RKE2_ALL_NODES = { 10.0.30.11, 10.0.30.12, 10.0.30.13, 10.0.30.21, 10.0.30.22 }
+
+# Réseau Pods/Services (défaut RKE2 - adapter si modifié)
+define POD_CIDR = 10.42.0.0/16
+define SVC_CIDR = 10.43.0.0/16
+
+# Ports standards
+define SSH_PORT = 22
+
+# Ports Kubernetes Control Plane
+define K8S_API = 6443
+define ETCD_CLIENT = 2379
+define ETCD_PEER = 2380
+define KUBELET = 10250
+define SCHEDULER = 10259
+define CONTROLLER = 10257
+
+# RKE2 specifique
+define RKE2_SUPERVISOR = 9345
+
+# Ports CNI (exemple Calico - adapter selon ton CNI)
+define CALICO_BGP = 179
+define CALICO_TYPHA = 5473
+define CALICO_VXLAN = 4789
+
+# NodePort Range
+define NODEPORT_RANGE = 30000-32767
+
+# -----------------------------------------------------------------------------
+# TABLE INET FILTER
+# -----------------------------------------------------------------------------
+table inet filter {
+
+    # -------------------------------------------------------------------------
+    # SET - Liste des nodes (pour règles dynamiques)
+    # -------------------------------------------------------------------------
+    set cluster_nodes {
+        type ipv4_addr
+        elements = $RKE2_ALL_NODES
+    }
+
+    # -------------------------------------------------------------------------
+    # CHAIN INPUT
+    # -------------------------------------------------------------------------
+    chain input {
+        type filter hook input priority 0; policy drop;
+
+        # === BASE RULES ===
+        
+        # Loopback - CRITIQUE pour Kubernetes
+        iif "lo" accept
+
+        # Stateful
+        ct state established,related accept
+        ct state invalid drop
+
+        # ICMP
+        icmp type echo-request limit rate 10/second accept
+        icmpv6 type { echo-request, nd-neighbor-solicit, nd-neighbor-advert } accept
+
+        # === SSH ADMINISTRATION ===
+        tcp dport $SSH_PORT ip saddr $MGMT_NET accept
+
+        # === KUBERNETES CONTROL PLANE ===
+
+        # API Server (6443) - Depuis MGMT, tous les nodes, et Pods
+        tcp dport $K8S_API ip saddr $MGMT_NET accept
+        tcp dport $K8S_API ip saddr @cluster_nodes accept
+        tcp dport $K8S_API ip saddr $POD_CIDR accept
+
+        # RKE2 Supervisor API (9345) - Entre masters pour le join
+        tcp dport $RKE2_SUPERVISOR ip saddr $RKE2_MASTERS accept
+
+        # etcd (2379-2380) - Uniquement entre Masters
+        tcp dport $ETCD_CLIENT ip saddr $RKE2_MASTERS accept
+        tcp dport $ETCD_PEER ip saddr $RKE2_MASTERS accept
+
+        # Kubelet (10250) - Depuis API server et autres nodes
+        tcp dport $KUBELET ip saddr @cluster_nodes accept
+        tcp dport $KUBELET ip saddr $POD_CIDR accept
+
+        # Scheduler & Controller Manager (health checks)
+        tcp dport { $SCHEDULER, $CONTROLLER } ip saddr 127.0.0.1 accept
+        tcp dport { $SCHEDULER, $CONTROLLER } ip saddr @cluster_nodes accept
+
+        # === CNI - CALICO (adapter selon ton CNI) ===
+
+        # BGP (si Calico en mode BGP)
+        tcp dport $CALICO_BGP ip saddr @cluster_nodes accept
+
+        # Typha (Calico)
+        tcp dport $CALICO_TYPHA ip saddr @cluster_nodes accept
+
+        # VXLAN (Flannel/Calico overlay)
+        udp dport $CALICO_VXLAN ip saddr @cluster_nodes accept
+
+        # IPIP (Calico encapsulation)
+        ip protocol 4 ip saddr @cluster_nodes accept
+
+        # === NODEPORTS (si le master expose des services) ===
+        # Note: Généralement les NodePorts sont sur les Workers
+        # tcp dport $NODEPORT_RANGE accept
+
+        # === MONITORING ===
+
+        # Node Exporter (Prometheus)
+        tcp dport 9100 ip saddr $MGMT_NET accept
+
+        # Kubelet metrics (pour Prometheus)
+        tcp dport 10250 ip saddr $MGMT_NET accept
+
+        # kube-state-metrics (si déployé)
+        tcp dport 8080 ip saddr $MGMT_NET accept
+        tcp dport 8081 ip saddr $MGMT_NET accept
+
+        # === TRAFIC PODS -> HOST ===
+        # Permet aux pods d'accéder aux services du host (DNS, etc.)
+        ip saddr $POD_CIDR accept
+
+        # === SERVICES KUBERNETES INTERNES ===
+        ip saddr $SVC_CIDR accept
+
+        # Log drops (debug)
+        # log prefix "[NFT-RKE2-DROP] " counter drop
+    }
+
+    # -------------------------------------------------------------------------
+    # CHAIN FORWARD - IMPORTANT pour le CNI
+    # -------------------------------------------------------------------------
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+
+        # Stateful
+        ct state established,related accept
+        ct state invalid drop
+
+        # Le CNI a besoin de forward le trafic des Pods
+        # Option 1: Faire confiance au CNI (simple)
+        ip saddr $POD_CIDR accept
+        ip daddr $POD_CIDR accept
+
+        # Option 2: Plus restrictif (si besoin de filtrer inter-pods)
+        # Voir NetworkPolicies Kubernetes plutôt que nftables
+
+        # Services ClusterIP
+        ip saddr $SVC_CIDR accept
+        ip daddr $SVC_CIDR accept
+    }
+
+    # -------------------------------------------------------------------------
+    # CHAIN OUTPUT
+    # -------------------------------------------------------------------------
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}
+
+# =============================================================================
+# CONFIGURATION RKE2 WORKER
+# =============================================================================
+# Pour les Workers, retirer:
+#   - etcd ports (2379, 2380)
+#   - RKE2 Supervisor (9345) 
+#   - Scheduler/Controller (10259, 10257)
+#
+# Et ajouter:
+#   - NodePorts: tcp dport 30000-32767 accept
+#
+# =============================================================================

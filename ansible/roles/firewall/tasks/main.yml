@@ -1,0 +1,72 @@
+---
+# =============================================================================
+# FIREWALL ROLE - Tasks
+# =============================================================================
+
+- name: Installer nftables
+  apt:
+    name: nftables
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Activer IP forwarding (Gateway uniquement)
+  sysctl:
+    name: "{{ item }}"
+    value: "1"
+    sysctl_set: yes
+    state: present
+    reload: yes
+  loop:
+    - net.ipv4.ip_forward
+    - net.ipv6.conf.all.forwarding
+  when: firewall_ip_forward | bool
+
+- name: Désactiver IP forwarding (Serveurs simples)
+  sysctl:
+    name: "{{ item }}"
+    value: "0"
+    sysctl_set: yes
+    state: present
+    reload: yes
+  loop:
+    - net.ipv4.ip_forward
+    - net.ipv6.conf.all.forwarding
+  when: not (firewall_ip_forward | bool)
+
+- name: Créer le répertoire de backup nftables
+  file:
+    path: /etc/nftables.d
+    state: directory
+    mode: '0750'
+
+- name: Sauvegarder la configuration actuelle
+  shell: nft list ruleset > /etc/nftables.d/backup-$(date +%Y%m%d-%H%M%S).conf
+  changed_when: false
+  ignore_errors: yes
+
+- name: Déployer la configuration nftables
+  template:
+    src: "nftables-{{ firewall_type }}.conf.j2"
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: '0640'
+    validate: 'nft -c -f %s'
+    backup: yes
+  notify: reload nftables
+
+- name: Activer nftables au démarrage
+  systemd:
+    name: nftables
+    enabled: yes
+    state: started
+
+- name: Vérifier que nftables est chargé
+  command: nft list ruleset
+  register: nft_rules
+  changed_when: false
+
+- name: Afficher le nombre de règles chargées
+  debug:
+    msg: "nftables actif avec {{ nft_rules.stdout_lines | length }} lignes de configuration"

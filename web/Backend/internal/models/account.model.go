@@ -18,6 +18,6 @@ type Account struct {
 	DeletedAt      gorm.DeletedAt `gorm:"index" json:"deleted_at"`
 }
 
-type DepositInput struct {
+type TransactionInput struct {
 	Amount float64 `json:"amount" binding:"required,gt=0"`
 }

@@ -1,0 +1,9 @@
+---
+process_exporter_version: "0.7.10"
+
+#Services à monitorer
+monitored_processes:
+  - pdns_server
+  - suricata
+  - kea-dhcp4
+  - kea-ctrl-agent

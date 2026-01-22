@@ -1,0 +1,140 @@
+#!/usr/sbin/nft -f
+# =============================================================================
+# NFTABLES CONFIGURATION - GATEWAY (Routeur/Firewall)
+# Machine: gateway-1 / gateway-2
+# Interfaces: eth0 (WAN), eth1 (LAN/Trunk VLANs)
+# =============================================================================
+
+flush ruleset
+
+# -----------------------------------------------------------------------------
+# VARIABLES
+# -----------------------------------------------------------------------------
+define WAN_IF = eth0
+define LAN_IF = eth1
+
+# Réseaux
+define MGMT_NET = 10.0.20.0/24
+define INFRA_NET = 10.0.10.0/24
+define APP_NET = 10.0.30.0/24
+define DATA_NET = 10.0.40.0/24
+define ALL_VLANS = 10.0.0.0/16
+
+# IPs Gateway (pour Keepalived)
+define GW_PRIMARY = 10.0.0.11
+define GW_BACKUP = 10.0.0.12
+define GW_VIP = 10.0.0.10
+
+# Ports
+define SSH_PORT = 22
+
+# -----------------------------------------------------------------------------
+# TABLE INET (IPv4 + IPv6)
+# -----------------------------------------------------------------------------
+table inet filter {
+
+    # -------------------------------------------------------------------------
+    # CHAIN INPUT - Trafic entrant vers la Gateway
+    # -------------------------------------------------------------------------
+    chain input {
+        type filter hook input priority 0; policy drop;
+
+        # Loopback - Toujours autoriser
+        iif "lo" accept
+
+        # Stateful - Connexions établies/associées
+        ct state established,related accept
+
+        # Drop invalid
+        ct state invalid drop
+
+        # ICMP - Ping autorisé (avec rate limit)
+        icmp type echo-request limit rate 10/second accept
+        icmpv6 type { echo-request, nd-neighbor-solicit, nd-neighbor-advert, nd-router-solicit, nd-router-advert } accept
+
+        # SSH - Uniquement depuis le réseau MGMT
+        iifname $LAN_IF tcp dport $SSH_PORT ip saddr $MGMT_NET accept
+
+        # VRRP - Keepalived entre les deux gateways
+        ip protocol 112 ip saddr { $GW_PRIMARY, $GW_BACKUP } accept
+
+        # DHCP Relay (si nécessaire) - Réponses DHCP
+        iifname $WAN_IF udp sport 67 udp dport 68 accept
+
+        # Log des drops (optionnel - commenter en prod si trop verbeux)
+        # log prefix "[NFT-INPUT-DROP] " flags all counter drop
+    }
+
+    # -------------------------------------------------------------------------
+    # CHAIN FORWARD - Trafic routé entre interfaces
+    # -------------------------------------------------------------------------
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+
+        # Stateful - Connexions établies/associées
+        ct state established,related accept
+
+        # Drop invalid
+        ct state invalid drop
+
+        # ===== LAN -> WAN (Sortie Internet) =====
+        iifname $LAN_IF oifname $WAN_IF accept
+
+        # ===== WAN -> LAN (DNAT - Port Forwarding) =====
+        # Exemple: Exposer le port 443 vers le Bastion
+        # iifname $WAN_IF oifname $LAN_IF ip daddr 10.0.20.11 tcp dport 443 accept
+
+        # ===== Inter-VLANs via sous-interfaces (si configurées) =====
+        # MGMT peut atteindre tous les VLANs (administration)
+        iifname $LAN_IF ip saddr $MGMT_NET oifname $LAN_IF accept
+
+        # INFRA (DHCP/DNS) peut répondre à tous les VLANs
+        iifname $LAN_IF ip saddr $INFRA_NET oifname $LAN_IF accept
+
+        # APP peut atteindre DATA (PostgreSQL)
+        iifname $LAN_IF ip saddr $APP_NET ip daddr $DATA_NET oifname $LAN_IF accept
+
+        # DATA peut répondre à APP (réponses établies déjà gérées)
+        # Réplication DB intra-DATA
+        iifname $LAN_IF ip saddr $DATA_NET ip daddr $DATA_NET oifname $LAN_IF accept
+
+        # Log des drops (debug)
+        # log prefix "[NFT-FORWARD-DROP] " flags all counter drop
+    }
+
+    # -------------------------------------------------------------------------
+    # CHAIN OUTPUT - Trafic sortant (tout autorisé)
+    # -------------------------------------------------------------------------
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}
+
+# -----------------------------------------------------------------------------
+# TABLE NAT - Masquerading et DNAT
+# -----------------------------------------------------------------------------
+table ip nat {
+
+    # -------------------------------------------------------------------------
+    # PREROUTING - DNAT (Port Forwarding entrant)
+    # -------------------------------------------------------------------------
+    chain prerouting {
+        type nat hook prerouting priority dstnat; policy accept;
+
+        # Exemple: Rediriger le port 443 WAN vers le Bastion
+        # iifname $WAN_IF tcp dport 443 dnat to 10.0.20.11:443
+
+        # Exemple: Rediriger le port 22 WAN vers le Bastion (SSH)
+        # iifname $WAN_IF tcp dport 2222 dnat to 10.0.20.11:22
+    }
+
+    # -------------------------------------------------------------------------
+    # POSTROUTING - SNAT/Masquerading (NAT sortant)
+    # -------------------------------------------------------------------------
+    chain postrouting {
+        type nat hook postrouting priority srcnat; policy accept;
+
+        # Masquerading - Tout le LAN sort avec l'IP WAN
+        oifname $WAN_IF masquerade
+    }
+}

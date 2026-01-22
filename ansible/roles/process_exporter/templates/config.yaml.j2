@@ -1,0 +1,6 @@
+process_names:
+  {% for proc in monitored_processes %}
+  - name: "{{ proc }}"
+    executable_names:
+      - "{{ proc }}"
+  {% endfor %}
