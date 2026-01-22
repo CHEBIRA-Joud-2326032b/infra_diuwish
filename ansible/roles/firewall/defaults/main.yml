@@ -1,0 +1,53 @@
+---
+# =============================================================================
+# FIREWALL ROLE - Variables par défaut
+# =============================================================================
+
+# Type de firewall (gateway, bastion, dhcp, dns, database, monitoring, soc, rke2-master, rke2-worker, backup)
+firewall_type: "bastion"
+
+# Interface réseau principale
+firewall_interface: "eth0"
+
+# Réseaux
+firewall_mgmt_net: "10.0.20.0/24"
+firewall_infra_net: "10.0.10.0/24"
+firewall_app_net: "10.0.30.0/24"
+firewall_data_net: "10.0.40.0/24"
+firewall_all_vlans: "10.0.0.0/16"
+
+# Port SSH
+firewall_ssh_port: 22
+
+# Activer les logs de debug (drops)
+firewall_debug_logging: false
+
+# Activer le forwarding IP (uniquement pour gateway)
+firewall_ip_forward: false
+
+# Gateway spécifique
+firewall_wan_interface: "eth0"
+firewall_lan_interface: "eth1"
+firewall_gateway_primary: "10.0.0.11"
+firewall_gateway_backup: "10.0.0.12"
+firewall_gateway_vip: "10.0.0.10"
+
+# RKE2 spécifique
+firewall_rke2_masters: 
+  - "10.0.30.11"
+  - "10.0.30.12"
+  - "10.0.30.13"
+firewall_rke2_workers:
+  - "10.0.30.21"
+  - "10.0.30.22"
+firewall_pod_cidr: "10.42.0.0/16"
+firewall_svc_cidr: "10.43.0.0/16"
+
+# Database spécifique
+firewall_db_peer: ""  # IP de l'autre node pour réplication
+
+# Backup/PBS spécifique
+firewall_proxmox_host: "10.0.0.1"
+
+# Services additionnels à autoriser (format: {port: 8080, proto: tcp, source: "10.0.20.0/24"})
+firewall_extra_rules: []
