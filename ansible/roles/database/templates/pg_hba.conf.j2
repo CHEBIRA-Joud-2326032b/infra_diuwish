@@ -133,3 +133,6 @@ host    replication     all             ::1/128                 scram-sha-256
 
 # --- AJOUT ANSIBLE : Autoriser le LAN ---
 host 	all 		all 		{{ allowed_network }}	scram-sha-256
+# Autoriser repmgr sur le réseau (pour la réplication)
+host    repmgr          repmgr          {{ allowed_network }}   md5
+host    replication     repmgr          {{ allowed_network }}   md5

@@ -12,7 +12,7 @@
 
 # 2. BASES DE DONNÉES 
 
-- name: Configuration des serveurs MariaDB
+- name: Configuration des serveurs POSTGRESQL
   hosts: databases
   become: yes
   roles:

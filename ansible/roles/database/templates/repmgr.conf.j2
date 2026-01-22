@@ -1,0 +1,6 @@
+node_id={{ node_id | default(1) }}
+node_name='{{ inventory_hostname }}'
+conninfo='host={{ ansible_default_ipv4.address }} user=repmgr dbname=repmgr connect_timeout=2'
+data_directory='/var/lib/postgresql/{{ postgresql_version }}/main'
+use_replication_slots=yes
+monitoring_history=yes

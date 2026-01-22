@@ -57,7 +57,7 @@ external_pid_file = '/var/run/postgresql/16-main.pid'			# write an extra PID fil
 
 # - Connection Settings -
 
-listen_addresses = '*'			# what IP address(es) to listen on;
+listen_addresses = '{{ ansible_default_ipv4.address }}'			# what IP address(es) to listen on;
 					# comma-separated list of addresses;
 					# defaults to 'localhost'; use '*' for all
 					# (change requires restart)
@@ -744,7 +744,7 @@ default_text_search_config = 'pg_catalog.french'
 
 #local_preload_libraries = ''
 #session_preload_libraries = ''
-#shared_preload_libraries = ''	# (change requires restart)
+shared_preload_libraries = 'repmgr'	# (change requires restart)
 #jit_provider = 'llvmjit'		# JIT library to use
 
 # - Other Defaults -
