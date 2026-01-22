@@ -1,0 +1,13 @@
+[Interface]
+
+# IP de la Gateway dans le tunnel
+Address = {{ vpn_network_ip }}
+ListenPort = {{ vpn_port }}
+
+PrivateKey = {{ server_private_key_base64.content | b64decode }}
+
+# NAT
+
+PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o {{ external_interface }} -j MASQUERADE
+PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o {{ external_interface }} -j MASQUERADE
+

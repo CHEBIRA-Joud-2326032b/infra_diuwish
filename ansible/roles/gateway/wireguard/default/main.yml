@@ -1,0 +1,8 @@
+vpn_network_ip: "10.50.0.1/24"
+vpn_port: 51820
+vpn_interface_name: "wg0"
+
+external_interface: "eth0" #mis au hasard on verra plus tard
+
+# Les clés générées par ansible plus tards
+wireguard_dir: "/etc/wireguard"
