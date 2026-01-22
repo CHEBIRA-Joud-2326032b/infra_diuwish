@@ -8,4 +8,5 @@ import (
 
 func SetupAccountRoutes(router *gin.Engine, handler *handlers.AccountHandler) {
 	router.POST("/account/:id/deposit", handler.HandleDeposit)
+	router.POST("/account/:id/withdraw", handler.HandleWithdraw)
 }
