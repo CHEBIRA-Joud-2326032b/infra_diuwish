@@ -4,7 +4,7 @@ module "rke2_masters" {
   count  = 3
 
   vm_name     = "rke2-master-${count.index + 1}"
-  vm_id       = 300 + count.index + 1
+  vm_id       = 883050 + count.index + 1
   target_node = var.node
   template_id = var.template_id
   tags        = ["rke2", "master"]
@@ -15,7 +15,7 @@ module "rke2_masters" {
   memory    = 2048
   disk_size = 20
 
-  networks       = [{ bridge = "vmbr1", tag = 30 }] # VLAN 30
+  networks       = [{ bridge = "vmbr10", tag = 30 }] # VLAN 30
   ip_address     = "10.0.30.1${count.index + 1}/24" # .11, .12, .13
   gateway        = "10.0.30.1"
   ssh_public_key = var.ssh_public_key
@@ -27,7 +27,7 @@ module "rke2_workers" {
   count  = 2
 
   vm_name     = "rke2-worker-${count.index + 1}"
-  vm_id       = 310 + count.index + 1
+  vm_id       = 883060 + count.index + 1
   target_node = var.node
   template_id = var.template_id
   tags        = ["rke2", "worker"]
@@ -38,7 +38,7 @@ module "rke2_workers" {
   memory    = 2048
   disk_size = 30   # Pour les images Docker et les volumes
 
-  networks       = [{ bridge = "vmbr1", tag = 30 }]
+  networks       = [{ bridge = "vmbr10", tag = 30 }]
   ip_address     = "10.0.30.2${count.index + 1}/24" # .21, .22
   gateway        = "10.0.30.1"
   ssh_public_key = var.ssh_public_key

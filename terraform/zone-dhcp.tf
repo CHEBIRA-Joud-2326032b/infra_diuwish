@@ -2,7 +2,7 @@
 module "dhcp_01" {
   source = "./modules/vm_template"
   vm_name     = "dhcp-1"
-  vm_id       = 101
+  vm_id       = 881011
   target_node = var.node
   template_id = var.template_id
   tags        = ["dhcp"]
@@ -11,9 +11,8 @@ module "dhcp_01" {
 
   cores     = 1
   memory    = 512
-  disk_size = 8
 
-  networks       = [{ bridge = "vmbr1", tag = 10 }]
+  networks       = [{ bridge = "vmbr10", tag = 10 }]
   ip_address     = "10.0.10.11/24"
   gateway        = "10.0.10.1"
   ssh_public_key = var.ssh_public_key
@@ -23,7 +22,7 @@ module "dhcp_01" {
 module "dhcp_02" {
   source = "./modules/vm_template"
   vm_name     = "dhcp-2"
-  vm_id       = 102
+  vm_id       = 881012
   target_node = var.node
   template_id = var.template_id
   tags        = ["dhcp"]
@@ -32,9 +31,8 @@ module "dhcp_02" {
 
   cores     = 1
   memory    = 512
-  disk_size = 8
 
-  networks       = [{ bridge = "vmbr1", tag = 10 }]
+  networks       = [{ bridge = "vmbr10", tag = 10 }]
   ip_address     = "10.0.10.12/24"
   gateway        = "10.0.10.1"
   ssh_public_key = var.ssh_public_key

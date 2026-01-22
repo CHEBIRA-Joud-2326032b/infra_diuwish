@@ -92,3 +92,15 @@ variable "pool_id" {
   description = "Resource Pool (ex: Groupe67-B2)"
   default     = "Groupe67-B2"
 }
+
+variable "wan_ip" {
+  description = "IP CIDR pour l'interface WAN (eth1). Si vide, pas d'interface WAN."
+  type        = string
+  default     = ""
+}
+
+variable "wan_gateway" {
+  description = "passerelle internet"
+  type        = string
+  default     = ""
+}

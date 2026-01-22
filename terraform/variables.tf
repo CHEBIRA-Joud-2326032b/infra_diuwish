@@ -12,6 +12,7 @@ variable "pm_api_url" {
 variable "ssh_public_key" {
   description = "Clé SSH publique personnelle"
   type        = string
+  default     = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM/1PrFtkre55iLTyGkTkkSIYrkY/ePmp7UXRhMyube+"
 }
 
 variable "default_ci_user" {
@@ -23,10 +24,10 @@ variable "default_ci_user" {
 
 variable "node" {
   type    = string
-  default = "node1"
+  default = "node2"
 }
 
 variable "template_id" {
   type    = number
-  default = 8800
+  default = 880000
 }

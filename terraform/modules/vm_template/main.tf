@@ -64,13 +64,23 @@ resource "proxmox_virtual_environment_vm" "vm" {
     ip_config {
       ipv4 {
         address = var.ip_address
-        gateway = var.gateway != "" ? var.gateway : null
+      }
+    }
+
+    dynamic "ip_config" {
+      for_each = var.wan_ip != "" ? [1] : []
+      content {
+        ipv4 {
+          address = var.wan_ip
+          gateway = var.wan_gateway
+        }
       }
     }
 
     user_account {
       username = var.ci_user
       keys     = [var.ssh_public_key]
+      password = "Password123!"
     }
   }
 
