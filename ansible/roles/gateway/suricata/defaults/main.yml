@@ -1,0 +1,7 @@
+---
+home_net: "[10.0.0.0/16, 10.50.0.0/24]" #a modifier si besoin
+
+# L'interface réseau à surveiller (la même que pour le VPN)
+network_interface: "eth0" # à modifier si besoin
+
+ips_mode: "yes"
