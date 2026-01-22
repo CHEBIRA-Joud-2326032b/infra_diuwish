@@ -1,0 +1,51 @@
+---
+- name: Télécharger Process Exporter
+  get_url:
+    url: "https://github.com/ncabatoff/process-exporter/releases/download/v{{ process_exporter_version }}/process-exporter-{{ process_exporter_version }}.linux-amd64.tar.gz"
+    dest: "/tmp/process-exporter.tar.gz"
+
+- name: Extraire l'archive
+  unarchive:
+    src: "/tmp/process-exporter.tar.gz"
+    dest: "/tmp"
+    remote_src: yes
+
+- name: Installer le binaire
+  copy:
+    src: "/tmp/process-exporter-{{ process_exporter_version }}.linux-amd64/process-exporter"
+    dest: "/usr/local/bin/process-exporter"
+    mode: '0755'
+    remote_src: yes
+
+- name: Créer le dossier /etc/process-exporter
+  file:
+    path: /etc/process-exporter
+    state: directory
+
+- name: Envoyer le fichier de config
+  template:
+    src: config.yaml.j2
+    dest: /etc/process-exporter/config.yaml
+
+- name: Créer le service systemd
+  copy:
+    dest: /etc/systemd/system/process-exporter.service
+    content: |
+      [Unit]
+      Description=Process Exporter pour Prometheus
+      After=network.target
+
+      [Service]
+      Type=simple
+      ExecStart=/usr/local/bin/process-exporter -config.path /etc/process-exporter/config.yaml
+      Restart=always
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Lancer et activer Process Exporter
+  systemd:
+    name: process-exporter
+    state: started
+    enabled: yes
+    daemon_reload: yes

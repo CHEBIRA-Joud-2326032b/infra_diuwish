@@ -1,0 +1,36 @@
+---
+- name: Télécharger Kea Exporter
+  get_url:
+    url: "https://github.com/justinas/kea-exporter/releases/download/v{{ kea_exporter_version }}/kea-exporter-{{ kea_exporter_version }}.linux-amd64.tar.gz"
+    dest: "/tmp/kea-exporter.tar.gz"
+
+- name: Extraire Kea Exporter
+  unarchive:
+    src: "/tmp/kea-exporter.tar.gz"
+    dest: "/usr/local/bin/"
+    remote_src: yes
+    extra_opts: ['--strip-components=1', 'kea-exporter-{{ kea_exporter_version }}.linux-amd64/kea-exporter']
+
+- name: Créer le service systemd pour Kea Exporter
+  copy:
+    dest: /etc/systemd/system/kea-exporter.service
+    content: |
+      [Unit]
+      Description=Kea Exporter pour Prometheus
+      After=network.target
+
+      [Service]
+      Type=simple
+      ExecStart=/usr/local/bin/kea-exporter --address 0.0.0.0 --port {{ kea_exporter_port }} --kea-socket {{ kea_control_socket }}
+      Restart=always
+      User=root
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Démarrer Kea Exporter
+  systemd:
+    name: kea-exporter
+    state: started
+    enabled: yes
+    daemon_reload: yes

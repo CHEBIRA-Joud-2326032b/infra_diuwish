@@ -14,3 +14,14 @@ master=no
 slave=yes
 superslave=yes
 {% endif %}
+
+# --- ACTIVATION DE L'EXPORTER PROMETHEUS ---
+webserver=yes
+webserver-address=0.0.0.0
+webserver-port=8081
+
+# autoriser que la VM Monitor (Prometheus) a lire les données
+webserver-allow-from=10.0.20.31/32
+
+api=yes
+api-key={{ db_password }} 
