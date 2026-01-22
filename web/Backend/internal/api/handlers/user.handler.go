@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"Diu-Wish/internal/api/service"
+	"Diu-Wish/internal/middleware"
 	"Diu-Wish/internal/models"
 	"Diu-Wish/internal/utils"
 	"errors"
@@ -66,6 +67,13 @@ func (h *UserHandler) HandleLogin(c *gin.Context) {
 		return
 	}
 
+	token, errMiddleware := middleware.CreateToken(user.ID)
+	if errMiddleware != nil {
+		utils.Error(c, http.StatusInternalServerError, "Impossible de générer le token")
+		return
+	}
+
+	c.SetCookie("Authorization", token, 60*15, "", "", false, true)
 	utils.Success(c, http.StatusOK, "Connexion réussie", user)
 }
 
