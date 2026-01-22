@@ -3,6 +3,7 @@
 **/*.tfvars
 **/.terraform/*
 
+.terraform.lock.hcl
 # Ignore variables files
 */*.auto.tfvars
 
