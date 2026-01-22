@@ -1,0 +1,35 @@
+global:
+  scrape_interval: 15s 
+
+scrape_configs:
+  # Node Exporter
+  - job_name: 'node_exporters'
+    static_configs:
+      - targets:
+{% for host in groups['all'] %}
+        - '{{ host }}:9100'
+{% endfor %}
+
+  # Suricata, PDNS, Kea
+  - job_name: 'process_exporters'
+    static_configs:
+      - targets:
+{% for host in groups['gateways'] | default([]) + groups['dns'] | default([]) + groups['dhcp'] | default([]) %}
+        - '{{ host }}:9256'
+{% endfor %}
+
+  #  performances PowerDNS 
+  - job_name: 'powerdns'
+    static_configs:
+      - targets:
+{% for host in groups['dns'] | default([]) %}
+        - '{{ host }}:8081'
+{% endfor %}
+
+  #  stock d'IPs DHCP (Kea) 
+  - job_name: 'kea_dhcp'
+    static_configs:
+      - targets:
+{% for host in groups['dhcp'] | default([]) %}
+        - '{{ host }}:9547'
+{% endfor %}

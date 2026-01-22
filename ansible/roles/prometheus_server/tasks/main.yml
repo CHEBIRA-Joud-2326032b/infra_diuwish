@@ -1,0 +1,21 @@
+---
+- name: Installer le serveur Prometheus
+  apt:
+    name: prometheus
+    state: present
+    update_cache: yes
+
+- name: Envoyer la configuration personnalisé
+  template:
+    src: prometheus.yml.j2
+    dest: /etc/prometheus/prometheus.yml
+    owner: prometheus
+    group: prometheus
+    mode: '0644'
+  notify: Restart Prometheus
+
+- name: S'assurer que Prometheus est lancer
+  systemd:
+    name: prometheus
+    state: started
+    enabled: yes

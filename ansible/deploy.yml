@@ -10,7 +10,7 @@
     - node_exporter
 
 
-# 2. BASES DE DONNÉES (À faire avant le DNS !)
+# 2. BASES DE DONNÉES 
 
 - name: Configuration des serveurs MariaDB
   hosts: databases
@@ -57,3 +57,11 @@
     - kea_dhcp
     - kea_exporter
     - process_exporter
+
+  # 6 Monitoring Server
+
+- name: Configuration du serveur de Monitoring
+  hosts: monitor
+  become: yes
+  roles:
+    - prometheus_server
