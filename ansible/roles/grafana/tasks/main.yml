@@ -1,0 +1,46 @@
+---
+- name: Installer les dépendances
+  apt:
+    name: [ 'apt-transport-https', 'software-properties-common', 'wget' ]
+    state: present
+
+- name: Ajouter la clé GPG de Grafana
+  apt_key:
+    url: https://apt.grafana.com/gpg.key
+    state: present
+
+- name: Ajouter le dépôt Grafana
+  apt_repository:
+    repo: "deb https://apt.grafana.com stable main"
+    state: present
+
+- name: Installer Grafana
+  apt:
+    name: grafana
+    state: present
+    update_cache: yes
+
+- name: Lier Grafana à Prometheus automatiquement
+  copy:
+    dest: /etc/grafana/provisioning/datasources/prometheus.yml
+    content: |
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          access: proxy
+          url: http://localhost:9090
+          isDefault: true
+
+- name: Démarrer Grafana
+  systemd:
+    name: grafana-server
+    state: started
+    enabled: yes
+
+#Dans Grafana, va dans Dashboards -> Import et tape ces numéros (ce sont les IDs des modèles officiels)
+
+#1860 : Le dashboard parfait pour Node Exporter (CPU, RAM, Disque de tous tes serveurs).
+#14981 : Le dashboard pour WireGuard (ton VPN).
+#12543 : Le dashboard pour Suricata.
+#10174 : Le dashboard pour PowerDNS.
