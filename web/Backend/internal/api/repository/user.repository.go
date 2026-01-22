@@ -26,7 +26,7 @@ func (r *UserRepository) Save(user *models.User, ctx context.Context) error {
 func (r *UserRepository) FindByEmail(email string, ctx context.Context) (*models.User, error) {
 	var user models.User
 
-	err := r.db.WithContext(ctx).Where("email = ?", email).First(&user).Error
+	err := r.db.WithContext(ctx).Preload("Accounts").Where("email = ?", email).First(&user).Error
 
 	return &user, utils.TransformDBError(err)
 }

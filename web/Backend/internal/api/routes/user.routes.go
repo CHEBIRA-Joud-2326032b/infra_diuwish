@@ -2,6 +2,7 @@ package routes
 
 import (
 	"Diu-Wish/internal/api/handlers"
+	"Diu-Wish/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -9,5 +10,5 @@ import (
 func SetupUserRoutes(router *gin.Engine, handler *handlers.UserHandler) {
 	router.POST("/register", handler.HandleRegister)
 	router.POST("/login", handler.HandleLogin)
-	router.GET("/users/:id", handler.HandleGetUser)
+	router.GET("/users/:id", middleware.RequireAuth, handler.HandleGetUser)
 }

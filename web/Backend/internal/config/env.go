@@ -14,7 +14,7 @@ func EnvInit() {
 	}
 }
 
-func getEnvVar(key string, defaultValue string) string {
+func GetEnvVar(key string, defaultValue string) string {
 	envVar, isPresent := os.LookupEnv(key)
 	if !isPresent {
 		return defaultValue
