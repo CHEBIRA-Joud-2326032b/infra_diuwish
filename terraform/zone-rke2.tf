@@ -9,6 +9,8 @@ module "rke2_masters" {
   template_id = var.template_id
   tags        = ["rke2", "master"]
 
+  ci_user = var.default_ci_user
+
   cores     = 2
   memory    = 2048
   disk_size = 20
@@ -29,6 +31,8 @@ module "rke2_workers" {
   target_node = var.node
   template_id = var.template_id
   tags        = ["rke2", "worker"]
+
+  ci_user = var.default_ci_user
 
   cores     = 2
   memory    = 2048

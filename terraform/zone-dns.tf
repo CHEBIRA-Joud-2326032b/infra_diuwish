@@ -8,6 +8,8 @@ module "dns_01" {
   template_id = var.template_id
   tags        = ["dns"]
 
+  ci_user = var.default_ci_user
+
   cores     = 1
   memory    = 512
   disk_size = 8
@@ -27,6 +29,8 @@ module "dns_02" {
   target_node = var.node
   template_id = var.template_id
   tags        = ["dns"]
+
+  ci_user = var.default_ci_user
 
   cores     = 1
   memory    = 512

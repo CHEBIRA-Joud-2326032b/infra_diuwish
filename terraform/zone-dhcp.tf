@@ -7,6 +7,8 @@ module "dhcp_01" {
   template_id = var.template_id
   tags        = ["dhcp"]
 
+  ci_user = var.default_ci_user
+
   cores     = 1
   memory    = 512
   disk_size = 8
@@ -25,6 +27,8 @@ module "dhcp_02" {
   target_node = var.node
   template_id = var.template_id
   tags        = ["dhcp"]
+
+  ci_user = var.default_ci_user
 
   cores     = 1
   memory    = 512

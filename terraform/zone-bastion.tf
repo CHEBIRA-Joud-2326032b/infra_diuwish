@@ -8,6 +8,8 @@ module "bastion" {
   template_id = var.template_id
   tags        = ["bastion"]
 
+  ci_user = var.default_ci_user
+
   cores     = 2
   memory    = 2048
   disk_size = 20

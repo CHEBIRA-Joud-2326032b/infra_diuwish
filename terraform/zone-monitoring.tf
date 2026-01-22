@@ -8,6 +8,8 @@ module "monitoring" {
   template_id = var.template_id
   tags        = ["monitoring"]
 
+  ci_user = var.default_ci_user
+
   cores     = 2
   memory    = 2048
   disk_size = 30
