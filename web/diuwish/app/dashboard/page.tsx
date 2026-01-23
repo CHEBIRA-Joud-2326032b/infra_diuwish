@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 
 import DashboardActions from "@/components/dashboard/DashboardActions";
 
+const API_URL = process.env.API_URL || "http://localhost:8080";
+
 async function Dashboard() {
   const cookieStore = await cookies();
   const token = cookieStore.get("Authorization");
@@ -12,17 +14,16 @@ async function Dashboard() {
     redirect("/");
   }
 
-  const res = await fetch(`http://localhost:8080/users/${userId.value}`, {
+  const res = await fetch(`${API_URL}/users/${userId.value}`, {
     method: "GET",
     headers: {
       Cookie: `Authorization=${token.value}`,
     },
-    cache: "no-store", // Ensure fresh data on every request
+    cache: "no-store",
   });
 
   if (!res.ok) {
     console.error("Failed to fetch user data", await res.text());
-    // If unauthorized, redirect to login
     if (res.status === 401) {
       redirect("/");
     }
@@ -45,7 +46,6 @@ async function Dashboard() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4 md:p-8">
       <div className="w-full max-w-5xl bg-white rounded-2xl shadow-xl overflow-hidden">
-        {/* Header Section */}
         <div className="bg-blue-600 p-8 text-white relative flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold mb-2">Tableau de Bord</h1>
@@ -78,7 +78,6 @@ async function Dashboard() {
         </div>
 
         <div className="p-8 grid grid-cols-1 lg:grid-cols-2 gap-10">
-          {/* User Info Section */}
           <div className="space-y-6">
             <div className="flex items-center space-x-3 border-b border-gray-200 pb-3">
               <h2 className="text-2xl font-semibold text-gray-800">
@@ -107,7 +106,6 @@ async function Dashboard() {
             </div>
           </div>
 
-          {/* Accounts Section */}
           <div className="space-y-6">
             <div className="flex items-center space-x-3 border-b border-gray-200 pb-3">
               <h2 className="text-2xl font-semibold text-gray-800">
@@ -166,7 +164,6 @@ async function Dashboard() {
           </div>
         </div>
 
-        {/* Actions Section */}
         <div className="bg-gray-50 p-8 border-t border-gray-200">
           <h3 className="text-lg font-semibold text-gray-700 mb-4">
             Actions Rapides

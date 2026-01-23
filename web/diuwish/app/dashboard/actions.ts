@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
+const API_URL = process.env.API_URL || "http://localhost:8080";
+
 export async function depositAction(accountId: number, amount: number) {
   const cookieStore = await cookies();
   const token = cookieStore.get("Authorization");
@@ -11,17 +13,14 @@ export async function depositAction(accountId: number, amount: number) {
     return { success: false, message: "Non authentifié" };
   }
 
-  const res = await fetch(
-    `http://localhost:8080/account/${accountId}/deposit`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: `Authorization=${token.value}`,
-      },
-      body: JSON.stringify({ amount }),
+  const res = await fetch(`${API_URL}/account/${accountId}/deposit`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: `Authorization=${token.value}`,
     },
-  );
+    body: JSON.stringify({ amount }),
+  });
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
@@ -43,17 +42,14 @@ export async function withdrawAction(accountId: number, amount: number) {
     return { success: false, message: "Non authentifié" };
   }
 
-  const res = await fetch(
-    `http://localhost:8080/account/${accountId}/withdraw`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: `Authorization=${token.value}`,
-      },
-      body: JSON.stringify({ amount }),
+  const res = await fetch(`${API_URL}/account/${accountId}/withdraw`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: `Authorization=${token.value}`,
     },
-  );
+    body: JSON.stringify({ amount }),
+  });
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));

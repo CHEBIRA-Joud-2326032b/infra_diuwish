@@ -5,7 +5,6 @@ function Header() {
     <header className="w-full bg-white shadow-sm border-b border-gray-100 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-center h-16 items-center">
-          {/* Logo Section */}
           <Link href="/" className="flex items-center gap-3 group">
             <div className="bg-linear-to-br from-blue-600 to-indigo-700 p-2.5 rounded-xl shadow-lg shadow-blue-200 group-hover:shadow-blue-300 transition-all duration-300">
               <svg
