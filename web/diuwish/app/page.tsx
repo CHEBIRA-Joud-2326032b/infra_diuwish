@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+const API_URL = process.env.API_URL || "http://localhost:8080";
+
 async function Page() {
   const cookieStore = await cookies();
   if (cookieStore.has("Authorization")) {
@@ -12,7 +14,7 @@ async function Page() {
 
     const data = Object.fromEntries(formData.entries());
 
-    const res = await fetch("http://localhost:8080/login", {
+    const res = await fetch(`${API_URL}/login`, {
       method: "POST",
       body: JSON.stringify(data),
       headers: {
@@ -53,7 +55,6 @@ async function Page() {
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-linear-to-br from-blue-900 via-blue-800 to-indigo-900 p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
-        {/* Header */}
         <div className="bg-blue-600 p-8 text-center">
           <h1 className="text-3xl font-bold text-white mb-2">Bienvenue</h1>
           <p className="text-blue-100">
@@ -61,7 +62,6 @@ async function Page() {
           </p>
         </div>
 
-        {/* Form */}
         <div className="p-8">
           <form action={handleLogin} className="space-y-6">
             <div>

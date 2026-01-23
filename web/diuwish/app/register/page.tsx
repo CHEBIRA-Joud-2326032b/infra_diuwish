@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
+const API_URL = process.env.API_URL || "http://localhost:8080";
+
 async function Register() {
   const cookieStore = await cookies();
   if (cookieStore.has("Authorization")) {
@@ -12,7 +14,7 @@ async function Register() {
 
     const data = Object.fromEntries(formData.entries());
 
-    const res = await fetch("http://localhost:8080/register", {
+    const res = await fetch(`${API_URL}/register`, {
       method: "POST",
       body: JSON.stringify(data),
       headers: {
@@ -34,7 +36,6 @@ async function Register() {
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-linear-to-br from-blue-900 via-blue-800 to-indigo-900 p-4">
       <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden">
-        {/* Header */}
         <div className="bg-blue-600 p-8 text-center">
           <h1 className="text-3xl font-bold text-white mb-2">Inscription</h1>
           <p className="text-blue-100">
@@ -42,13 +43,11 @@ async function Register() {
           </p>
         </div>
 
-        {/* Form */}
         <div className="p-8">
           <form
             action={handleRegister}
             className="grid grid-cols-1 md:grid-cols-2 gap-6"
           >
-            {/* Nom */}
             <div>
               <label
                 htmlFor="lastname"
@@ -84,7 +83,6 @@ async function Register() {
               </div>
             </div>
 
-            {/* Prénom */}
             <div>
               <label
                 htmlFor="firstname"
@@ -120,7 +118,6 @@ async function Register() {
               </div>
             </div>
 
-            {/* Téléphone */}
             <div className="md:col-span-2">
               <label
                 htmlFor="phone"
@@ -156,7 +153,6 @@ async function Register() {
               </div>
             </div>
 
-            {/* Email */}
             <div className="md:col-span-2">
               <label
                 htmlFor="email"
@@ -192,7 +188,6 @@ async function Register() {
               </div>
             </div>
 
-            {/* Mot de passe */}
             <div className="md:col-span-2">
               <label
                 htmlFor="password"
