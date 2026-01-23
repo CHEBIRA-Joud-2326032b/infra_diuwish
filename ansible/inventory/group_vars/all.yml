@@ -1,0 +1,4 @@
+# Configuration spécifique pour tous les serveurs SAUF les gateways
+# on doit rebondir via la Gateway publique.
+
+ansible_ssh_common_args: '-o ProxyCommand="ssh -W %h:%p -q admin_infra@192.168.10.54 -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa"'

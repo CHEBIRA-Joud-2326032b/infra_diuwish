@@ -1,4 +1,15 @@
 ---
+- name: Installer les dépendances systèmes de base
+  apt:
+    name:
+      - unzip
+      - tar
+      - curl
+      - wget
+      - acl # Nécessaire pour Ansible 'become' user
+    state: present
+    update_cache: yes
+
 - name: Configure NTP (Chrony)
   import_tasks: ntp.yml
 

@@ -11,6 +11,7 @@ module "dhcp_01" {
 
   cores     = 1
   memory    = 512
+  disk_size = 20
 
   networks       = [{ bridge = "vmbr10", tag = 10 }]
   ip_address     = "10.0.10.11/24"
@@ -31,6 +32,7 @@ module "dhcp_02" {
 
   cores     = 1
   memory    = 512
+  disk_size = 20
 
   networks       = [{ bridge = "vmbr10", tag = 10 }]
   ip_address     = "10.0.10.12/24"

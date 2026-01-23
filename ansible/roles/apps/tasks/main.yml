@@ -48,6 +48,13 @@
   environment:
     KUBECONFIG: /etc/rancher/rke2/rke2.yaml
 
+- name: Déployer l'Application Frontend
+  kubernetes.core.k8s:
+    state: present
+    template: frontend-deployment.yaml.j2
+  environment:
+    KUBECONFIG: /etc/rancher/rke2/rke2.yaml
+
 - name: Déployer la Ressource Ingress
   kubernetes.core.k8s:
     state: present

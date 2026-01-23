@@ -1,0 +1,10 @@
+---
+- name: Restart Chrony
+  service:
+    name: chrony
+    state: restarted
+
+- name: Restart Promtail
+  service:
+    name: promtail
+    state: restarted

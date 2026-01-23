@@ -17,6 +17,7 @@ resource "proxmox_virtual_environment_vm" "vm" {
   agent {
     enabled = true
     trim    = true
+    timeout = "2m"
   }
 
   stop_on_destroy = true
@@ -60,13 +61,7 @@ resource "proxmox_virtual_environment_vm" "vm" {
 
   initialization {
     datastore_id = var.storage_id
-
-    ip_config {
-      ipv4 {
-        address = var.ip_address
-      }
-    }
-
+    interface = "ide2"
     dynamic "ip_config" {
       for_each = var.wan_ip != "" ? [1] : []
       content {
@@ -77,10 +72,15 @@ resource "proxmox_virtual_environment_vm" "vm" {
       }
     }
 
+    ip_config {
+      ipv4 {
+        address = var.ip_address
+      }
+    }
+
     user_account {
       username = var.ci_user
       keys     = [var.ssh_public_key]
-      password = "Password123!"
     }
   }
 

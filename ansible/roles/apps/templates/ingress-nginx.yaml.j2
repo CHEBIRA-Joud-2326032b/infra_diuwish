@@ -1,13 +1,16 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: backend-ingress
+  name: diuwish-ingress
   namespace: default
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+    # Réécriture nécessaire uniquement si l'application attend / mais reçoit /api
+    # Pour Next.js et Go API sur des sous-domaines distincts, ce n'est souvent pas requis
+    # nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   ingressClassName: nginx
   rules:
+  # Route pour le Backend API
   - host: api.diuwish.internal
     http:
       paths:
@@ -16,5 +19,17 @@ spec:
         backend:
           service:
             name: backend-service
+            port:
+              number: 80
+  
+  # Route pour le Frontend
+  - host: app.diuwish.internal
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
             port:
               number: 80

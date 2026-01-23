@@ -12,7 +12,7 @@ variable "pm_api_url" {
 variable "ssh_public_key" {
   description = "Clé SSH publique personnelle"
   type        = string
-  default     = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM/1PrFtkre55iLTyGkTkkSIYrkY/ePmp7UXRhMyube+"
+  default     = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIILKKIWjYEvPSm8tT5k2S94V6qReeWcSUqlsbUZJVFzI"
 }
 
 variable "default_ci_user" {

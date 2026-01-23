@@ -12,6 +12,7 @@ module "gateway_01" {
 
   cores  = 2
   memory = 1024
+  disk_size = 20
 
   networks = [
     { bridge = "vmbr0" }, # WAN
@@ -19,8 +20,7 @@ module "gateway_01" {
   ]
 
   ip_address = "10.0.0.11/24" # .10 sera la VIP Keepalived
-  wan_ip      = "192.168.10.81/24"
-  wan_gateway = "192.168.10.254"
+  wan_ip      = "dhcp"       # On passe en DHCP pour le WAN
 
   ssh_public_key = var.ssh_public_key
 }
@@ -37,6 +37,7 @@ module "gateway_02" {
 
   cores  = 2
   memory = 1024
+  disk_size = 20
 
   networks = [
     { bridge = "vmbr0" },
@@ -44,7 +45,7 @@ module "gateway_02" {
   ]
 
   ip_address     = "10.0.0.12/24"
-  wan_ip      = "192.168.10.82/24"
-  wan_gateway = "192.168.10.254"
+  wan_ip      = "dhcp"
+
   ssh_public_key = var.ssh_public_key
 }
