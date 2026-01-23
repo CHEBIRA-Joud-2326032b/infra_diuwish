@@ -7,6 +7,7 @@ import (
 	"Diu-Wish/internal/api/service"
 	"fmt"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -15,12 +16,13 @@ func setupRouter(db *gorm.DB) *gin.Engine {
 	router := gin.Default()
 
 	// ------------Configuration CORS---------------
-	/* config := cors.DefaultConfig()
+	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{"http://localhost:3000"}
+	config.AllowCredentials = true
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE"}
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization"}
 
-	router.Use(cors.New(config)) */
+	router.Use(cors.New(config))
 	// -----------------------------------------
 
 	// ------------Account functions---------------
