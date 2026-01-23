@@ -820,3 +820,15 @@ include_dir = 'conf.d'			# include files ending in '.conf' from
 #------------------------------------------------------------------------------
 
 # Add settings for extensions here
+
+listen_addresses = '*' # on peut écouter sur tout
+port = {{ postgresql_port }}
+
+# REPLICATION SETTINGS
+wal_level = replica
+max_wal_senders = 10
+max_replication_slots = 10
+hot_standby = on
+
+# REPMGR REQUIREMENT
+shared_preload_libraries = 'repmgr'

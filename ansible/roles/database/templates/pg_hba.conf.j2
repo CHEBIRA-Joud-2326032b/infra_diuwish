@@ -120,6 +120,7 @@ local   all             postgres                                peer
 # TYPE  DATABASE        USER            ADDRESS                 METHOD
 
 # "local" is for Unix domain socket connections only
+local   all             postgres                                peer
 local   all             all                                     peer
 # IPv4 local connections:
 host    all             all             127.0.0.1/32            scram-sha-256
@@ -131,8 +132,7 @@ local   replication     all                                     peer
 host    replication     all             127.0.0.1/32            scram-sha-256
 host    replication     all             ::1/128                 scram-sha-256
 
-# --- AJOUT ANSIBLE : Autoriser le LAN ---
 host 	all 		all 		{{ allowed_network }}	scram-sha-256
 # Autoriser repmgr sur le réseau (pour la réplication)
-host    repmgr          repmgr          {{ allowed_network }}   md5
-host    replication     repmgr          {{ allowed_network }}   md5
+host    repmgr          repmgr          {{ allowed_network }}   scram-sha-256
+host    replication     repmgr          {{ allowed_network }}   scram-sha-256

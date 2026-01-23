@@ -1,142 +1,35 @@
 #!/usr/sbin/nft -f
-# =============================================================================
-# NFTABLES CONFIGURATION - BASTION (Teleport)
-# Machine: bastion (10.0.20.11)
-# VLAN: 20 (MGMT)
-# Rôle: Point d'entrée SSH/HTTPS sécurisé
-# =============================================================================
-# 
-# Ce fichier sert de MODÈLE pour tous les serveurs simples.
-# Adapter les sections "SERVICES SPÉCIFIQUES" selon la machine.
-#
-# =============================================================================
-
 flush ruleset
 
-# -----------------------------------------------------------------------------
-# VARIABLES
-# -----------------------------------------------------------------------------
-define LAN_IF = eth0
+define MGMT_NET = {{ firewall_mgmt_net }}
 
-# Réseaux autorisés
-define MGMT_NET = 10.0.20.0/24
-define ALL_VLANS = 10.0.0.0/16
-
-# IP du serveur (pour logs/debug)
-define SERVER_IP = 10.0.20.11
-
-# Ports standards
-define SSH_PORT = 22
-
-# --- SERVICES SPÉCIFIQUES AU BASTION ---
-define TELEPORT_SSH = 3022
-define TELEPORT_PROXY = { 3023, 3024, 3025, 3080 }
-define HTTPS_PORT = 443
-
-# IPs Admin autorisées (à personnaliser)
-# define ADMIN_IPS = { 192.168.1.100, 10.0.0.0/8 }
-
-# -----------------------------------------------------------------------------
-# TABLE INET FILTER
-# -----------------------------------------------------------------------------
 table inet filter {
+chain input {
+type filter hook input priority 0; policy drop;
 
-    # -------------------------------------------------------------------------
-    # CHAIN INPUT
-    # -------------------------------------------------------------------------
-    chain input {
-        type filter hook input priority 0; policy drop;
+iif "lo" accept
+ct state established,related accept
+icmp type echo-request limit rate 10/second accept
 
-        # === BASE RULES (Ne pas modifier) ===
-        
-        # Loopback
-        iif "lo" accept
+# SSH de secours (Si Teleport casse)
+tcp dport 22 ip saddr $MGMT_NET accept
 
-        # Stateful
-        ct state established,related accept
-        ct state invalid drop
+# === TELEPORT (Bastion) ===
+# Teleport Proxy UI (443 ou 3080 selon votre config)
+tcp dport { 443, 3080 } accept
+# Teleport Proxy SSH
+tcp dport 3023 accept
+# Teleport Proxy Tunnel / Reverse Tunnel
+tcp dport { 3024, 3025 } accept
 
-        # ICMP
-        icmp type echo-request limit rate 10/second accept
-        icmpv6 type { echo-request, nd-neighbor-solicit, nd-neighbor-advert } accept
+# === MONITORING & SECURITY ===
+# Node Exporter
+tcp dport 9100 ip saddr $MGMT_NET accept
 
-        # === SSH ADMINISTRATION ===
-        # Option 1: SSH depuis MGMT uniquement
-        tcp dport $SSH_PORT ip saddr $MGMT_NET accept
-        
-        # Option 2: SSH depuis IPs admin spécifiques (décommenter si besoin)
-        # tcp dport $SSH_PORT ip saddr $ADMIN_IPS accept
-
-        # === SERVICES SPÉCIFIQUES AU BASTION ===
-
-        # Teleport SSH (port alternatif)
-        tcp dport $TELEPORT_SSH accept
-
-        # Teleport Proxy Ports
-        tcp dport $TELEPORT_PROXY accept
-
-        # HTTPS (Dashboard Teleport)
-        tcp dport $HTTPS_PORT accept
-
-        # === FIN SERVICES SPÉCIFIQUES ===
-
-        # Monitoring - Node Exporter (Prometheus scrape)
-        tcp dport 9100 ip saddr $MGMT_NET accept
-
-        # Log drops (debug - désactiver en prod)
-        # log prefix "[NFT-BASTION-DROP] " counter drop
-    }
-
-    # -------------------------------------------------------------------------
-    # CHAIN FORWARD (Désactivé - pas un routeur)
-    # -------------------------------------------------------------------------
-    chain forward {
-        type filter hook forward priority 0; policy drop;
-    }
-
-    # -------------------------------------------------------------------------
-    # CHAIN OUTPUT (Tout autorisé)
-    # -------------------------------------------------------------------------
-    chain output {
-        type filter hook output priority 0; policy accept;
-    }
+# Le Bastion est un point sensible, on log les drops
+log prefix "[BASTION-DROP] " limit rate 5/minute
 }
-
-# =============================================================================
-# EXEMPLES D'ADAPTATION POUR AUTRES MACHINES
-# =============================================================================
-#
-# --- DHCP (10.0.10.11, 10.0.10.12) ---
-# Remplacer la section "SERVICES SPÉCIFIQUES" par:
-#   udp dport 67 accept                    # DHCP Server
-#   tcp dport 9100 ip saddr $MGMT_NET accept  # Node Exporter
-#
-# --- DNS (10.0.10.21, 10.0.10.22) ---
-#   tcp dport 53 ip saddr $ALL_VLANS accept   # DNS TCP
-#   udp dport 53 ip saddr $ALL_VLANS accept   # DNS UDP
-#   tcp dport 8081 ip saddr $MGMT_NET accept  # PowerDNS API (optionnel)
-#
-# --- DATABASE (10.0.40.11, 10.0.40.12) ---
-#   define APP_NET = 10.0.30.0/24
-#   define DB_PEER = 10.0.40.12              # Ou .11 pour le standby
-#   tcp dport 5432 ip saddr $APP_NET accept  # PostgreSQL depuis APP
-#   tcp dport 5432 ip saddr $MGMT_NET accept # PostgreSQL depuis MGMT
-#   tcp dport 5432 ip saddr $DB_PEER accept  # Réplication
-#
-# --- MONITORING (10.0.20.31) ---
-#   tcp dport 3000 ip saddr $MGMT_NET accept  # Grafana
-#   tcp dport 9090 ip saddr $MGMT_NET accept  # Prometheus
-#   tcp dport 9093 ip saddr $MGMT_NET accept  # Alertmanager
-#
-# --- SOC/WAZUH (10.0.20.21) ---
-#   tcp dport 1514 ip saddr $ALL_VLANS accept  # Wazuh Agent
-#   tcp dport 1515 ip saddr $ALL_VLANS accept  # Wazuh Registration
-#   tcp dport 55000 ip saddr $MGMT_NET accept  # Wazuh API
-#   tcp dport 443 accept                       # Dashboard
-#
-# --- BACKUP/PBS (10.0.40.21) ---
-#   define PROXMOX_HOST = 10.0.0.1
-#   tcp dport 8007 ip saddr $MGMT_NET accept   # PBS Web UI
-#   tcp dport 8007 ip saddr $PROXMOX_HOST accept # Backup depuis Proxmox
-#
-# =============================================================================
+chain output {
+type filter hook output priority 0; policy accept;
+}
+}

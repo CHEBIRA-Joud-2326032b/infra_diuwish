@@ -1,0 +1,32 @@
+version: v3
+teleport:
+  nodename: bastion
+  data_dir: /var/lib/teleport
+  log:
+    output: stderr
+    severity: INFO
+  ca_pin: ""
+  auth_token: "{{ vault_teleport_token | default('ClusterTokenSecret') }}"
+
+auth_service:
+  enabled: "yes"
+  cluster_name: "diuwish.internal"
+  listen_addr: 0.0.0.0:3025
+  tokens:
+    - "proxy,node:{{ vault_teleport_token | default('ClusterTokenSecret') }}"
+  authentication:
+    type: local
+    second_factor: otp
+
+ssh_service:
+  enabled: "yes"
+  listen_addr: 0.0.0.0:3022
+  labels:
+    role: bastion
+
+proxy_service:
+  enabled: "yes"
+  listen_addr: 0.0.0.0:3023
+  web_listen_addr: 0.0.0.0:3080
+  tunnel_listen_addr: 0.0.0.0:3024
+  public_addr: "10.0.20.11:3080" # IP Bastion

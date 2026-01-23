@@ -1,27 +1,39 @@
+# Config Générale
 launch=gmysql
 gmysql-host=127.0.0.1
 gmysql-user={{ db_user }}
 gmysql-password={{ db_password }}
 gmysql-dbname={{ db_name }}
 
-# Configuration par rôle
-{% if inventory_hostname in groups['master'] %}
-master=yes
-slave=no
-allow-axfr-ips={{ slave_ip }}
-{% else %}
-master=no
-slave=yes
-superslave=yes
-{% endif %}
+# Sécurité & Réseau
+# On écoute sur le port 53 de l'interface LAN uniquement (SecOps)
+local-address={{ ansible_host }}
+local-port=53
 
-# --- ACTIVATION DE L'EXPORTER PROMETHEUS ---
+# API & Webserver (Pour Prometheus et Management)
+api=yes
+api-key={{ db_password }}
 webserver=yes
 webserver-address=0.0.0.0
 webserver-port=8081
+webserver-allow-from=10.0.20.31/32,10.0.20.11/32
 
-# autoriser que la VM Monitor (Prometheus) a lire les données
-webserver-allow-from=10.0.20.31/32
+# MASTER
+{% if inventory_hostname in groups['master'] %}
+    master=yes
+    slave=no
+    # Qui a le droit de télécharger toute ma zone ? (Le slave uniquement)
+    allow-axfr-ips={{ slave_ip }}/32
+    disable-axfr=no
+{% endif %}
 
-api=yes
-api-key={{ db_password }} 
+
+# SLAVE
+{% if inventory_hostname in groups['slave'] %}
+    master=no
+    slave=yes
+    # Accepter les notifications de mise à jour automatiques
+    superslave=yes
+    # Vérifier les mises à jour toutes les 60 secondes
+    slave-cycle-interval=60
+{% endif %}

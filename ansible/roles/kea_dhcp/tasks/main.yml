@@ -1,11 +1,12 @@
 ---
-- name: Installer Kea DHCP
+- name: Installer Kea DHCP et Dépendances
   apt:
-    name: kea-dhcp4-server
+    name:
+      - kea-dhcp4-server
+      - kea-admin
+      - kea-common
     state: present
     update_cache: yes
-    cache_valid_time: 3600
-
 
 - name: Créer le répertoire de logs
   file:
@@ -13,9 +14,9 @@
     state: directory
     owner: _kea
     group: _kea
-    mode: '0750'
+    mode: '0755'
 
-- name: Déployer la configuration
+- name: Déployer la configuration Kea HA
   template:
     src: kea-dhcp4.conf.j2
     dest: /etc/kea/kea-dhcp4.conf
@@ -25,7 +26,7 @@
     validate: 'kea-dhcp4 -t %s'
   notify: restart kea
 
-- name: Démarrer le service
+- name: Démarrer Kea DHCP v4
   systemd:
     name: kea-dhcp4-server
     state: started

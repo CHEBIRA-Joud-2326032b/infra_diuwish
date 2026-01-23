@@ -1,56 +1,97 @@
 {
-    "Dhcp4": {
-        "interfaces-config": {
-            "interfaces": [
-                {% for iface in kea_interfaces %}
-                "{{ iface }}"{% if not loop.last %},{% endif %}
-                {% endfor %}
-            ]
-        },
-        "lease-database": {
-            "type": "memfile",
-            "persist": true,
-            "name": "{{ kea_lease_file }}"
-        },
-        "valid-lifetime": {{ kea_valid_lifetime }},
-        "loggers": [
-            {
-                "name": "kea-dhcp4",
-                "severity": "{{ kea_log_severity }}",
-                "output-options": [
-                    {
-                        "output": "{{ kea_log_file }}"
-                    }
-                ]
-            }
-        ],
-        "subnet4": [
+"Dhcp4": {
+"interfaces-config": {
+"interfaces": [ "{{ kea_interfaces | join('", "') }}" ]
+},
+
+"control-socket": {
+"socket-type": "unix",
+"socket-name": "/tmp/kea4-ctrl-socket"
+},
+
+"lease-database": {
+"type": "memfile",
+"persist": true,
+"name": "{{ kea_lease_file }}"
+},
+
+"valid-lifetime": {{ kea_valid_lifetime }},
+"renew-timer": 1000,
+"rebind-timer": 2000,
+
+"loggers": [
+{
+"name": "kea-dhcp4",
+"severity": "{{ kea_log_severity }}",
+"output-options": [ { "output": "{{ kea_log_file }}" } ]
+}
+],
+
+"hooks-libraries": [
+{
+"library": "/usr/lib/x86_64-linux-gnu/kea/hooks/libdhcp_lease_cmds.so"
+},
+{
+"library": "/usr/lib/x86_64-linux-gnu/kea/hooks/libdhcp_ha.so",
+"parameters": {
+"high-availability": [ {
+"this-server-name": "{{ inventory_hostname }}",
+"mode": "load-balancing",
+"heartbeat-delay": 10,
+"max-response-delay": 60,
+"max-ack-delay": 10,
+"max-unacked-clients": 0,
+"peers": [
+{
+"name": "dhcp-1",
+"url": "http://{{ dhcp_primary_ip }}:8000/",
+"role": "primary",
+"auto-failover": true
+},
+{
+"name": "dhcp-2",
+"url": "http://{{ dhcp_standby_ip }}:8000/",
+"role": "secondary",
+"auto-failover": true
+}
+]
+} ]
+}
+}
+],
+
+"subnet4": [
 {% for subnet in kea_subnets %}
+    {
+    "id": {{ subnet.id }},
+    "subnet": "{{ subnet.subnet }}",
+
+    {# Gestion propre des Pools #}
+    {% if not subnet.no_pool | default(false) %}
+        "pools": [ { "pool": "{{ subnet.pool_start }} - {{ subnet.pool_end }}" } ],
+    {% else %}
+        "pools": [],
+    {% endif %}
+
+    "option-data": [
+    { "name": "routers", "data": "{{ subnet.gateway }}" },
+    { "name": "domain-name-servers", "data": "{{ kea_dns_servers }}" }
+    ]
+
+    {# Gestion des réservations si elles existent #}
+    {% if subnet.reservations is defined and subnet.reservations | length > 0 %}
+        ,"reservations": [
+        {% for res in subnet.reservations %}
             {
-                "id": {{ subnet.id }},
-                "subnet": "{{ subnet.subnet }}",
-{% if subnet.pool_start and subnet.pool_end %}
-                "pools": [{"pool": "{{ subnet.pool_start }} - {{ subnet.pool_end }}"}],
-{% else %}
-                "pools": [],
-{% endif %}
-                "option-data": [
-                    {"name": "routers", "data": "{{ subnet.gateway }}"}
-{% if subnet.use_global_dns | default(false) %}
-                    ,{"name": "domain-name-servers", "data": "{{ kea_dns_servers }}"}
-{% endif %}
-                ]
-{% if subnet.reservations | default([]) | length > 0 %}
-                ,"reservations": [
-{% for res in subnet.reservations %}
-                    {"hw-address": "{{ res.mac }}", "ip-address": "{{ res.ip }}", "hostname": "{{ res.hostname }}"}{% if not loop.last %},{% endif %}
-
-{% endfor %}
-                ]
-{% endif %}
+            "hw-address": "{{ res.mac }}",
+            "ip-address": "{{ res.ip }}",
+            "hostname": "{{ res.hostname }}"
             }{% if not loop.last %},{% endif %}
-
-{% endfor %}
+        {% endfor %}
         ]
-    }
+    {% endif %}
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
+]
+}
 }

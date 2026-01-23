@@ -1,13 +1,13 @@
 [Interface]
-
-# IP de la Gateway dans le tunnel
+# L'IP de la Gateway dans le tunnel (ex: 10.50.0.1/24)
 Address = {{ vpn_network_ip }}
 ListenPort = {{ vpn_port }}
-
 PrivateKey = {{ server_private_key_base64.content | b64decode }}
 
-# NAT
+MTU = 1360
 
-PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o {{ external_interface }} -j MASQUERADE
-PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o {{ external_interface }} -j MASQUERADE
-
+# --- PEERS ---
+# Admin
+[Peer]
+PublicKey = /871UwVy/dTkoiOgLXWIfZgE7AK40gVysciBKNMjsFs=
+    AllowedIPs = 10.50.0.2/32

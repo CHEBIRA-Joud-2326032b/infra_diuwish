@@ -1,0 +1,51 @@
+---
+- name: Installer Loki
+  unarchive:
+    src: https://github.com/grafana/loki/releases/download/v2.9.2/loki-linux-amd64.zip
+    dest: /usr/local/bin
+    remote_src: yes
+    creates: /usr/local/bin/loki-linux-amd64
+
+- name: Renommer le binaire Loki
+  command: mv /usr/local/bin/loki-linux-amd64 /usr/local/bin/loki
+  args:
+    creates: /usr/local/bin/loki
+
+- name: Rendre exécutable
+  file:
+    path: /usr/local/bin/loki
+    mode: '0755'
+
+- name: Créer le dossier de configuration
+  file:
+    path: /etc/loki
+    state: directory
+    mode: '0755'
+
+- name: Déployer la configuration Loki
+  template:
+    src: config.yaml.j2
+    dest: /etc/loki/config.yaml
+  notify: Redémarrer Loki
+
+- name: Créer le service Systemd Loki
+  copy:
+    dest: /etc/systemd/system/loki.service
+    content: |
+      [Unit]
+      Description=Service Loki
+      After=network.target
+
+      [Service]
+      Type=simple
+      User=root
+      ExecStart=/usr/local/bin/loki -config.file /etc/loki/config.yaml
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Démarrer Loki
+  systemd:
+    name: loki
+    state: started
+    enabled: yes

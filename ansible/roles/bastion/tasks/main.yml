@@ -1,0 +1,33 @@
+---
+- name: Add Teleport repository key
+  get_url:
+    url: https://deb.releases.teleport.dev/teleport-pubkey.asc
+    dest: /usr/share/keyrings/teleport-archive-keyring.asc
+    mode: '0644'
+
+- name: Add Teleport repository
+  apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/teleport-archive-keyring.asc] https://deb.releases.teleport.dev/ stable main"
+    state: present
+    filename: teleport
+
+- name: Install Teleport
+  apt:
+    name: teleport
+    state: present
+    update_cache: yes
+
+- name: Configure Teleport
+  template:
+    src: teleport.yaml.j2
+    dest: /etc/teleport.yaml
+    owner: root
+    group: root
+    mode: '0600'
+  notify: Restart Teleport
+
+- name: Start Teleport Service
+  service:
+    name: teleport
+    state: started
+    enabled: yes

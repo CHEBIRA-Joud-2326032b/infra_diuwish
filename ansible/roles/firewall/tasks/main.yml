@@ -1,72 +1,38 @@
----
-# =============================================================================
-# FIREWALL ROLE - Tasks
-# =============================================================================
-
-- name: Installer nftables
+- name: Installer WireGuard
   apt:
-    name: nftables
+    name: ['wireguard', 'wireguard-tools']
     state: present
-    update_cache: yes
-    cache_valid_time: 3600
 
-- name: Activer IP forwarding (Gateway uniquement)
+- name: Activer le routage IPv4 (Kernel)
   sysctl:
-    name: "{{ item }}"
-    value: "1"
-    sysctl_set: yes
+    name: net.ipv4.ip_forward
+    value: '1'
     state: present
     reload: yes
-  loop:
-    - net.ipv4.ip_forward
-    - net.ipv6.conf.all.forwarding
-  when: firewall_ip_forward | bool
 
-- name: Désactiver IP forwarding (Serveurs simples)
-  sysctl:
-    name: "{{ item }}"
-    value: "0"
-    sysctl_set: yes
-    state: present
-    reload: yes
-  loop:
-    - net.ipv4.ip_forward
-    - net.ipv6.conf.all.forwarding
-  when: not (firewall_ip_forward | bool)
+# Gestion des clés
+- name: Générer la clé privée
+  shell: "wg genkey | tee /etc/wireguard/server.key | wg pubkey > /etc/wireguard/server.pub"
+  args:
+    creates: /etc/wireguard/server.key
 
-- name: Créer le répertoire de backup nftables
-  file:
-    path: /etc/nftables.d
-    state: directory
-    mode: '0750'
+- name: Lire la clé privée
+  slurp:
+    src: /etc/wireguard/server.key
+  register: server_private_key_base64
 
-- name: Sauvegarder la configuration actuelle
-  shell: nft list ruleset > /etc/nftables.d/backup-$(date +%Y%m%d-%H%M%S).conf
-  changed_when: false
-  ignore_errors: yes
-
-- name: Déployer la configuration nftables
+- name: Déployer la configuration WireGuard
   template:
-    src: "nftables-{{ firewall_type }}.conf.j2"
-    dest: /etc/nftables.conf
+    src: wg0.conf.j2
+    dest: /etc/wireguard/wg0.conf
+    mode: '0600'
     owner: root
     group: root
-    mode: '0640'
-    validate: 'nft -c -f %s'
-    backup: yes
-  notify: reload nftables
+  # On redémarre l'interface pour appliquer, mais on ne coupe pas tout
+  notify: Restart WireGuard
 
-- name: Activer nftables au démarrage
+- name: S'assurer que l'interface wg0 est up
   systemd:
-    name: nftables
+    name: wg-quick@wg0
     enabled: yes
     state: started
-
-- name: Vérifier que nftables est chargé
-  command: nft list ruleset
-  register: nft_rules
-  changed_when: false
-
-- name: Afficher le nombre de règles chargées
-  debug:
-    msg: "nftables actif avec {{ nft_rules.stdout_lines | length }} lignes de configuration"

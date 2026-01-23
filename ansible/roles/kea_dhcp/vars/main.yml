@@ -1,45 +1,43 @@
----
-kea_interfaces: 
-  - "eth0"
-kea_dns_servers: "10.0.10.11, 10.0.10.12"
-kea_valid_lifetime: 4000
+# --- NETWORK CONFIG ---
+kea_interfaces: ["eth0"]
+
+kea_dns_servers: "10.0.10.21, 10.0.10.22"
+
+kea_valid_lifetime: 3600 # 1h c'est bien
 kea_lease_file: "/var/lib/kea/kea-leases4.csv"
 kea_log_file: "/var/log/kea/kea-dhcp4.log"
 kea_log_severity: "INFO"
 
+# --- HA CONFIGURATION ---
+# IPs des serveurs DHCP pour la ha
+dhcp_primary_ip: "10.0.10.11"
+dhcp_standby_ip: "10.0.10.12"
+
 kea_subnets:
   - id: 10
-    name: "ZONE INFRA - VLAN 10"
+    name: "INFRA"
     subnet: "10.0.10.0/24"
     pool_start: "10.0.10.100"
-    pool_end: "10.0.10.200"
-    gateway: "10.0.10.1"
-    use_global_dns: true
-    reservations: []
+    pool_end: "10.0.10.150"
+    gateway: "10.0.10.10" # VIP Gateway Infra
 
   - id: 20
-    name: "ZONE MGMT - VLAN 20"
+    name: "MGMT"
     subnet: "10.0.20.0/24"
     pool_start: "10.0.20.100"
-    pool_end: "10.0.20.200"
-    gateway: "10.0.20.1"
-    use_global_dns: true
-    reservations: []
+    pool_end: "10.0.20.150"
+    gateway: "10.0.20.10" # VIP Gateway Mgmt
 
   - id: 30
-    name: "ZONE APP - VLAN 30"
+    name: "APP"
     subnet: "10.0.30.0/24"
     pool_start: "10.0.30.100"
-    pool_end: "10.0.30.200"
-    gateway: "10.0.30.1"
-    use_global_dns: true
-    reservations: []
+    pool_end: "10.0.30.150"
+    gateway: "10.0.30.10" # VIP Gateway App
 
+  # VLAN 40 : Pas de pool (Statique uniquement ou Reservations)
   - id: 40
-    name: "ZONE DATA - VLAN 40 (STATIQUE SEULEMENT)"
+    name: "DATA"
     subnet: "10.0.40.0/24"
-    pool_start: ""
-    pool_end: ""
-    gateway: "10.0.40.1"
-    use_global_dns: false
-    reservations: []
+    gateway: "10.0.40.10"
+    no_pool: true

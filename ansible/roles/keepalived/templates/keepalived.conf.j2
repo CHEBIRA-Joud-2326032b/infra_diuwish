@@ -1,0 +1,90 @@
+global_defs {
+    router_id {{ inventory_hostname }}
+    script_user root
+    enable_script_security
+}
+
+vrrp_script check_gateway {
+    script "/usr/bin/ping -c 1 8.8.8.8 >/dev/null 2>&1"
+    interval 2
+    weight -20
+    fall 2
+    rise 2
+}
+
+# --- VIP INFRA (VLAN 10) ---
+vrrp_instance VI_10 {
+    state {{ 'MASTER' if inventory_hostname == groups['gateways'][0] else 'BACKUP' }}
+    # On suppose que l'interface VLAN est montée (ex: eth1.10) ou que eth1 porte tout
+    interface eth1
+    virtual_router_id 10
+    priority {{ '101' if inventory_hostname == groups['gateways'][0] else '100' }}
+    advert_int 1
+    
+    authentication {
+        auth_type PASS
+        auth_pass {{ vault_keepalived_pass | default('DiuwishKeepalivedSecret') }}
+    }
+
+    virtual_ipaddress {
+        10.0.10.10/24
+    }
+
+    track_script {
+        check_gateway
+    }
+}
+
+# --- VIP MGMT (VLAN 20) ---
+vrrp_instance VI_20 {
+    state {{ 'MASTER' if inventory_hostname == groups['gateways'][0] else 'BACKUP' }}
+    interface eth1
+    virtual_router_id 20
+    priority {{ '101' if inventory_hostname == groups['gateways'][0] else '100' }}
+    advert_int 1
+    
+    authentication {
+        auth_type PASS
+        auth_pass {{ vault_keepalived_pass | default('DiuwishKeepalivedSecret') }}
+    }
+
+    virtual_ipaddress {
+        10.0.20.10/24
+    }
+}
+
+# --- VIP APP (VLAN 30) ---
+vrrp_instance VI_30 {
+    state {{ 'MASTER' if inventory_hostname == groups['gateways'][0] else 'BACKUP' }}
+    interface eth1
+    virtual_router_id 30
+    priority {{ '101' if inventory_hostname == groups['gateways'][0] else '100' }}
+    advert_int 1
+    
+    authentication {
+        auth_type PASS
+        auth_pass {{ vault_keepalived_pass | default('DiuwishKeepalivedSecret') }}
+    }
+
+    virtual_ipaddress {
+        10.0.30.10/24
+    }
+}
+
+# --- VIP DATA (VLAN 40) ---
+vrrp_instance VI_40 {
+    state {{ 'MASTER' if inventory_hostname == groups['gateways'][0] else 'BACKUP' }}
+    interface eth1
+    virtual_router_id 40
+    priority {{ '101' if inventory_hostname == groups['gateways'][0] else '100' }}
+    advert_int 1
+    
+    authentication {
+        auth_type PASS
+        auth_pass {{ vault_keepalived_pass | default('DiuwishKeepalivedSecret') }}
+    }
+
+    virtual_ipaddress {
+        10.0.40.10/24
+    }
+}

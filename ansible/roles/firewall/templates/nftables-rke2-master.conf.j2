@@ -1,14 +1,4 @@
 #!/usr/sbin/nft -f
-# =============================================================================
-# NFTABLES CONFIGURATION - RKE2 MASTER (Kubernetes Control Plane)
-# Machines: rke2-master-1 (10.0.30.11), rke2-master-2 (.12), rke2-master-3 (.13)
-# VLAN: 30 (APP)
-# =============================================================================
-#
-# ATTENTION: Le CNI (Calico, Cilium, Flannel) peut gérer ses propres règles.
-# Cette config est un "Host Firewall" qui protège le node sans casser le CNI.
-#
-# =============================================================================
 
 flush ruleset
 
@@ -67,16 +57,16 @@ table inet filter {
         elements = $RKE2_ALL_NODES
     }
 
-    # -------------------------------------------------------------------------
-    # CHAIN INPUT
-    # -------------------------------------------------------------------------
     chain input {
         type filter hook input priority 0; policy drop;
 
         # === BASE RULES ===
         
-        # Loopback - CRITIQUE pour Kubernetes
+        # Loopback
         iif "lo" accept
+
+        # VRRP (Kube-VIP)
+        ip protocol vrrp accept
 
         # Stateful
         ct state established,related accept
@@ -111,18 +101,18 @@ table inet filter {
         tcp dport { $SCHEDULER, $CONTROLLER } ip saddr 127.0.0.1 accept
         tcp dport { $SCHEDULER, $CONTROLLER } ip saddr @cluster_nodes accept
 
-        # === CNI - CALICO (adapter selon ton CNI) ===
+        # === CNI - CALICO===
 
-        # BGP (si Calico en mode BGP)
+        # BGP
         tcp dport $CALICO_BGP ip saddr @cluster_nodes accept
 
-        # Typha (Calico)
+        # Typha
         tcp dport $CALICO_TYPHA ip saddr @cluster_nodes accept
 
-        # VXLAN (Flannel/Calico overlay)
+        # VXLAN
         udp dport $CALICO_VXLAN ip saddr @cluster_nodes accept
 
-        # IPIP (Calico encapsulation)
+        # IPIP
         ip protocol 4 ip saddr @cluster_nodes accept
 
         # === NODEPORTS (si le master expose des services) ===
@@ -137,7 +127,7 @@ table inet filter {
         # Kubelet metrics (pour Prometheus)
         tcp dport 10250 ip saddr $MGMT_NET accept
 
-        # kube-state-metrics (si déployé)
+        # kube-state-metrics
         tcp dport 8080 ip saddr $MGMT_NET accept
         tcp dport 8081 ip saddr $MGMT_NET accept
 
@@ -152,9 +142,6 @@ table inet filter {
         # log prefix "[NFT-RKE2-DROP] " counter drop
     }
 
-    # -------------------------------------------------------------------------
-    # CHAIN FORWARD - IMPORTANT pour le CNI
-    # -------------------------------------------------------------------------
     chain forward {
         type filter hook forward priority 0; policy drop;
 
@@ -163,21 +150,14 @@ table inet filter {
         ct state invalid drop
 
         # Le CNI a besoin de forward le trafic des Pods
-        # Option 1: Faire confiance au CNI (simple)
         ip saddr $POD_CIDR accept
         ip daddr $POD_CIDR accept
-
-        # Option 2: Plus restrictif (si besoin de filtrer inter-pods)
-        # Voir NetworkPolicies Kubernetes plutôt que nftables
 
         # Services ClusterIP
         ip saddr $SVC_CIDR accept
         ip daddr $SVC_CIDR accept
     }
 
-    # -------------------------------------------------------------------------
-    # CHAIN OUTPUT
-    # -------------------------------------------------------------------------
     chain output {
         type filter hook output priority 0; policy accept;
     }

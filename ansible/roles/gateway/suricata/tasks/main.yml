@@ -1,27 +1,37 @@
----
-- name: Installer Suricata
+- name: Installer les pré-requis Suricata IPS
   apt:
-    name: suricata
+    name:
+      - suricata
+      - suricata-update
+      - libnetfilter-queue-dev  # Nécessaire pour le mode NFQ
+      - libnetfilter-queue1
     state: present
     update_cache: yes
 
-- name: Installer suricata-update
-  apt:
-    name: suricata-update
-    state: present
-
-- name: Configurer Suricata
+- name: Configurer Suricata (Template Optimisé)
   template:
     src: suricata.yaml.j2
     dest: /etc/suricata/suricata.yaml
+    owner: root
+    group: root
+    mode: '0640'
   notify: Restart Suricata
 
-- name: Mettre à jour les règles de détection
+- name: Configurer le mode NFQUEUE dans /etc/default/suricata
+  lineinfile:
+    path: /etc/default/suricata
+    regexp: '^LISTENMODE='
+    line: 'LISTENMODE=nfqueue'
+  notify: Restart Suricata
+
+- name: Mettre à jour les règles
   command: suricata-update
   register: rules_update
   changed_when: '"Writing rules" in rules_update.stdout'
+  # On ne le fait pas à chaque run pour gagner du temps, seulement si config change ou force
+  tags: ['update-rules']
 
-- name: S'assurer que Suricata est lancé et activé
+- name: Démarrer Suricata
   systemd:
     name: suricata
     enabled: yes

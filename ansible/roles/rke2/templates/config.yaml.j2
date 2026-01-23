@@ -1,0 +1,11 @@
+token: {{ rke2_token }}
+tls-san:
+  - {{ rke2_vip }}
+  - rke2.diuwish.internal
+cni: calico
+disable:
+  - rke2-ingress-nginx
+
+{% if inventory_hostname != groups['master'][0] %}
+server: https://{{ rke2_vip }}:9345
+{% endif %}

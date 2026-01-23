@@ -1,0 +1,10 @@
+# Utiliser les gateways comme sources de temps fiables
+# car elles ont accés à internet
+server 10.0.0.11 iburst
+server 10.0.0.12 iburst
+
+# limites
+maxupdateskew 100.0
+driftfile /var/lib/chrony/chrony.drift
+logdir /var/log/chrony
+makestep 1 3

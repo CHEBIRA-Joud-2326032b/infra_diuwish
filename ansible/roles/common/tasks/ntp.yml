@@ -1,0 +1,27 @@
+---
+- name: Install Chrony
+  apt:
+    name: chrony
+    state: present
+    update_cache: yes
+
+- name: Configure Chrony (Client Mode)
+  template:
+    src: chrony.conf.j2
+    dest: /etc/chrony/chrony.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart Chrony
+  when: "'gateways' not in group_names"
+
+- name: Start Chrony Service
+  service:
+    name: chrony
+    state: started
+    enabled: yes
+
+- name: Force time sync if drift is high
+  command: chronyc -a makestep
+  changed_when: false
+  ignore_errors: yes

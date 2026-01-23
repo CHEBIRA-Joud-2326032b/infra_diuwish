@@ -1,6 +1,21 @@
-node_id={{ node_id | default(1) }}
+node_id={{ node_id }}
 node_name='{{ inventory_hostname }}'
-conninfo='host={{ ansible_default_ipv4.address }} user=repmgr dbname=repmgr connect_timeout=2'
+conninfo='host={{ ansible_default_ipv4.address }} user={{ repmgr_user }} dbname={{ repmgr_db }} connect_timeout=2'
 data_directory='/var/lib/postgresql/{{ postgresql_version }}/main'
-use_replication_slots=yes
+
+# --- FAILOVER AUTOMATIQUE ---
+failover=automatic
+promote_command='/usr/bin/repmgr standby promote -f /etc/postgresql/{{ postgresql_version }}/main/repmgr.conf --log-to-file'
+follow_command='/usr/bin/repmgr standby follow -f /etc/postgresql/{{ postgresql_version }}/main/repmgr.conf --log-to-file --upstream-node-id=%n'
+
+# --- MONITORING ---
 monitoring_history=yes
+log_level=INFO
+log_facility=STDERR
+log_file='/var/log/postgresql/repmgr.log'
+
+# --- SERVICE MANAGEMENT ---
+service_start_command='sudo systemctl start postgresql'
+service_stop_command='sudo systemctl stop postgresql'
+service_restart_command='sudo systemctl restart postgresql'
+service_reload_command='sudo systemctl reload postgresql'

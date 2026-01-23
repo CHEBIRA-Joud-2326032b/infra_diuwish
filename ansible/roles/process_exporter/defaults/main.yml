@@ -6,4 +6,4 @@ monitored_processes:
   - pdns_server
   - suricata
   - kea-dhcp4
-  - kea-ctrl-agent
+  - wazuh-agent

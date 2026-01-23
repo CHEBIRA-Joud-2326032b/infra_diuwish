@@ -1,35 +1,43 @@
 global:
-  scrape_interval: 15s 
+  scrape_interval: 15s
+  evaluation_interval: 15s
 
 scrape_configs:
-  # Node Exporter
-  - job_name: 'node_exporters'
+  # 1. OS Metrics (Node Exporter) - Tout le monde
+  - job_name: 'node'
     static_configs:
       - targets:
 {% for host in groups['all'] %}
-        - '{{ host }}:9100'
+          # On utilise l'IP définie dans l'inventaire pour éviter la dépendance DNS
+          - '{{ hostvars[host]["ansible_host"] | default(host) }}:9100'
 {% endfor %}
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+)(:[0-9]+)?'
+        replacement: '${1}' # Affiche l'IP ou le nom propre dans Grafana
 
-  # Suricata, PDNS, Kea
-  - job_name: 'process_exporters'
+  # 2. Process Critical (Gateway, DNS, DHCP)
+  - job_name: 'process'
     static_configs:
       - targets:
-{% for host in groups['gateways'] | default([]) + groups['dns'] | default([]) + groups['dhcp'] | default([]) %}
-        - '{{ host }}:9256'
+{% for host in (groups['gateways'] | default([]) + groups['dns'] | default([]) + groups['dhcp'] | default([])) | unique %}
+          - '{{ hostvars[host]["ansible_host"] | default(host) }}:9256'
 {% endfor %}
 
-  #  performances PowerDNS 
+  # 3. PowerDNS Metrics
   - job_name: 'powerdns'
+    metrics_path: '/metrics'
     static_configs:
       - targets:
 {% for host in groups['dns'] | default([]) %}
-        - '{{ host }}:8081'
+          - '{{ hostvars[host]["ansible_host"] | default(host) }}:8081'
 {% endfor %}
 
-  #  stock d'IPs DHCP (Kea) 
-  - job_name: 'kea_dhcp'
+  # 4. Kea DHCP Metrics
+  - job_name: 'kea'
     static_configs:
       - targets:
 {% for host in groups['dhcp'] | default([]) %}
-        - '{{ host }}:9547'
+          - '{{ hostvars[host]["ansible_host"] | default(host) }}:9547'
 {% endfor %}

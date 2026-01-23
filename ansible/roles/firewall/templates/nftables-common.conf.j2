@@ -1,0 +1,7 @@
+# === MONITORING (Prometheus Pull) ===
+# Autoriser le scrape depuis le serveur Prometheus (VLAN 20 / IP .31)
+# Ports : 9100 (Node), 9256 (Process), 9547 (Kea), 8081 (PDNS), 9080 (Promtail)
+ip saddr 10.0.20.31 tcp dport { 9100, 9256, 9547, 8081, 9080 } accept
+
+# Autoriser l'accès à Grafana depuis le VLAN MGMT (Bastion) et le VPN
+ip saddr { 10.0.20.11, 10.50.0.0/24 } tcp dport 3000 accept

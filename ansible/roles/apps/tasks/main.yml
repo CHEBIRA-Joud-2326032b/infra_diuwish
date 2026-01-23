@@ -1,0 +1,56 @@
+---
+- name: Ajouter le dépôt Ingress Nginx
+  kubernetes.core.helm_repository:
+    name: ingress-nginx
+    repo_url: https://kubernetes.github.io/ingress-nginx
+  environment:
+    KUBECONFIG: /etc/rancher/rke2/rke2.yaml
+
+- name: Installer Ingress Nginx
+  kubernetes.core.helm:
+    name: ingress-nginx
+    chart_ref: ingress-nginx/ingress-nginx
+    release_namespace: ingress-nginx
+    create_namespace: true
+    values:
+      controller:
+        hostNetwork: true
+        service:
+          type: ClusterIP
+        # Utilisation de hostNetwork pour exposer les ports 80/443 directement sur les nœuds
+        # Correspond à la configuration HAProxy/VIP Gateway
+  environment:
+    KUBECONFIG: /etc/rancher/rke2/rke2.yaml
+
+- name: Créer le Secret Base de Données
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: db-credentials
+        namespace: default
+      type: Opaque
+      data:
+        # Valeurs encodées en Base64
+        username: "{{ db_user | b64encode }}"
+        password: "{{ db_password | b64encode }}"
+        dbname: "{{ db_name | b64encode }}"
+        host: "{{ '10.0.40.10' | b64encode }}" # VIP Database
+  environment:
+    KUBECONFIG: /etc/rancher/rke2/rke2.yaml
+
+- name: Déployer l'Application Backend
+  kubernetes.core.k8s:
+    state: present
+    template: backend-deployment.yaml.j2
+  environment:
+    KUBECONFIG: /etc/rancher/rke2/rke2.yaml
+
+- name: Déployer la Ressource Ingress
+  kubernetes.core.k8s:
+    state: present
+    template: ingress-nginx.yaml.j2
+  environment:
+    KUBECONFIG: /etc/rancher/rke2/rke2.yaml

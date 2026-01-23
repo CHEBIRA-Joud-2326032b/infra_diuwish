@@ -3,6 +3,7 @@
   get_url:
     url: "https://github.com/justinas/kea-exporter/releases/download/v{{ kea_exporter_version }}/kea-exporter-{{ kea_exporter_version }}.linux-amd64.tar.gz"
     dest: "/tmp/kea-exporter.tar.gz"
+    mode: '0644'
 
 - name: Extraire Kea Exporter
   unarchive:
@@ -10,20 +11,35 @@
     dest: "/usr/local/bin/"
     remote_src: yes
     extra_opts: ['--strip-components=1', 'kea-exporter-{{ kea_exporter_version }}.linux-amd64/kea-exporter']
+    creates: "/usr/local/bin/kea-exporter"
 
-- name: Créer le service systemd pour Kea Exporter
+- name: Créer le répertoire de run Kea
+  file:
+    path: /run/kea
+    state: directory
+    owner: _kea
+    group: _kea
+    mode: '0755'
+
+- name: Créer le service systemd Kea Exporter
   copy:
     dest: /etc/systemd/system/kea-exporter.service
     content: |
       [Unit]
-      Description=Kea Exporter pour Prometheus
-      After=network.target
+      Description=Kea Exporter Prometheus
+      After=network.target kea-dhcp4-server.service
+      Requires=kea-dhcp4-server.service
 
       [Service]
       Type=simple
+      # On attend que le socket soit dispo
+      ExecStartPre=/bin/sleep 5
       ExecStart=/usr/local/bin/kea-exporter --address 0.0.0.0 --port {{ kea_exporter_port }} --kea-socket {{ kea_control_socket }}
       Restart=always
-      User=root
+      RestartSec=5s
+      # Sécurité : On ne lance pas en root si possible, mais le socket requiert souvent les droits.
+      # Pour l'école, Root est acceptable ici, sinon il faut gérer les groupes _kea.
+      User=root 
 
       [Install]
       WantedBy=multi-user.target

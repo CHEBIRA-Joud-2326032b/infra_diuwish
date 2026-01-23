@@ -1,95 +1,144 @@
 ---
-# ------- CONFIGURATION POSTGRESQL ---------
-
-- name: Installer PostgreSQL et les dépendances Python
+- name: Installer la Stack DB + Repmgr
   apt:
     name:
       - postgresql-{{ postgresql_version }}
-      - postgresql-contrib
+      - postgresql-{{ postgresql_version }}-repmgr
       - python3-psycopg2
-      - acl
     state: present
-    update_cache: yes
 
-- name: Configurer postgresql.conf (Écoute réseau)
+# --- CONFIGURATION DE BASE (Sur les 2 noeuds) ---
+
+- name: Configurer postgresql.conf
   template:
     src: postgresql.conf.j2
     dest: "/etc/postgresql/{{ postgresql_version }}/main/postgresql.conf"
-    owner: postgres
-    group: postgres
-  notify: Restart Postgres
+  notify: Redémarrer Postgres
 
-- name: Configurer pg_hba.conf (Autorisations réseau)
+- name: Configurer pg_hba.conf
   template:
     src: pg_hba.conf.j2
     dest: "/etc/postgresql/{{ postgresql_version }}/main/pg_hba.conf"
-    owner: postgres
-    group: postgres
-  notify: Restart Postgres
+  notify: Redémarrer Postgres
 
-- name: Démarrer le service PostgreSQL
-  service:
-    name: postgresql
-    state: started
-    enabled: yes
-
-- name: Créer l'utilisateur de base de données
-  community.postgresql.postgresql_user:
-    name: "{{ db_user }}"
-    password: "{{ db_password }}"
-    role_attr_flags: CREATEDB,NOSUPERUSER
-  become: yes
-  become_user: postgres
-
-- name: Créer la base de données
-  community.postgresql.postgresql_db:
-    name: "{{ db_name }}"
-    owner: "{{ db_user }}"
-  become: yes
-  become_user: postgres
-
-# ------- CONFIGURATION REPMGR ---------
-
-- name: Installer le paquet repmgr
-  apt:
-    name: "postgresql-{{ postgresql_version }}-repmgr"
-    state: present
-    update_cache: yes
-
-- name: Créer l'utilisateur PostgreSQL pour repmgr
-  community.postgresql.postgresql_user:
-    name: repmgr
-    password: "{{ repmgr_password | default('repmgr123') }}"
-    role_attr_flags: SUPERUSER,REPLICATION
-  become: yes
-  become_user: postgres
-
-- name: Créer la base de données repmgr
-  community.postgresql.postgresql_db:
-    name: repmgr
-    owner: repmgr
-  become: yes
-  become_user: postgres
-
-- name: Déployer le fichier de configuration repmgr.conf
+- name: Configurer repmgr.conf
   template:
     src: repmgr.conf.j2
     dest: "/etc/postgresql/{{ postgresql_version }}/main/repmgr.conf"
     owner: postgres
     group: postgres
-    mode: 0644
 
-- name: Vérifier si le nœud est déjà enregistré
-  command:
-    cmd: "psql -d repmgr -c 'SELECT count(*) FROM repmgr.nodes WHERE type=\\'primary\\''"
-  register: primary_check
-  become: yes
-  become_user: postgres
-  changed_when: false
+- name: Démarrer PostgreSQL (Initial)
+  service:
+    name: postgresql
+    state: started
+    enabled: yes
 
-- name: Enregistrer le nœud PRIMAIRE (seulement s'il n'y en a pas)
-  command:
-    cmd: "/usr/bin/repmgr -f /etc/postgresql/{{ postgresql_version }}/main/repmgr.conf primary register"
-  become: yes
-  become_user: postgres
-  when: primary_check.stdout.find('0') != -1
+# --- BOOTSTRAP MASTER---
+
+- name: Créer User Repmgr + DB (Master Uniquement)
+  block:
+    - name: Créer user repmgr
+      community.postgresql.postgresql_user:
+        name: "{{ repmgr_user }}"
+        password: "{{ repmgr_password }}"
+        role_attr_flags: SUPERUSER,REPLICATION
+      become: yes
+      become_user: postgres
+
+    - name: Créer DB repmgr
+      community.postgresql.postgresql_db:
+        name: "{{ repmgr_db }}"
+        owner: "{{ repmgr_user }}"
+      become: yes
+      become_user: postgres
+
+    - name: Enregistrer le Master dans Repmgr
+      command:
+        cmd: "/usr/bin/repmgr -f /etc/postgresql/{{ postgresql_version }}/main/repmgr.conf primary register"
+      become: yes
+      become_user: postgres
+      # On ignore l'erreur si déjà enregistré
+      register: register_result
+      failed_when:
+        - register_result.rc != 0
+        - '"already registered" not in register_result.stderr'
+  when: node_id == 1
+
+# --- BOOTSTRAP STANDBY (Uniquement sur le noeud 2) ---
+
+- name: Cloner le Master (Standby Uniquement)
+  block:
+    - name: Arrêter PostgreSQL avant clonage
+      service:
+        name: postgresql
+        state: stopped
+
+    - name: Supprimer le dossier data existant (Attention!)
+      file:
+        path: "/var/lib/postgresql/{{ postgresql_version }}/main"
+        state: absent
+
+    - name: Cloner les données depuis le Master (repmgr standby clone)
+      command:
+        cmd: "/usr/bin/repmgr -h {{ groups['database'][0] }} -U {{ repmgr_user }} -d {{ repmgr_db }} -f /etc/postgresql/{{ postgresql_version }}/main/repmgr.conf standby clone --fast-checkpoint"
+      become: yes
+      become_user: postgres
+      environment:
+        PGPASSWORD: "{{ repmgr_password }}"
+
+    - name: Démarrer PostgreSQL (Standby)
+      service:
+        name: postgresql
+        state: started
+
+    - name: Enregistrer le Standby
+      command:
+        cmd: "/usr/bin/repmgr -f /etc/postgresql/{{ postgresql_version }}/main/repmgr.conf standby register"
+      become: yes
+      become_user: postgres
+      failed_when: false
+  when: node_id != 1 and node_id != 3
+
+# --- CONFIGURATION WITNESS (Monitor VM) ---
+- name: Installation Witness (Monitor VM)
+  block:
+    - name: Configurer repmgr.conf (Witness)
+      template:
+        src: repmgr.conf.j2
+        dest: "/etc/postgresql/{{ postgresql_version }}/main/repmgr.conf"
+        owner: postgres
+        group: postgres
+      vars:
+        data_directory: "/var/lib/postgresql/{{ postgresql_version }}/main"
+
+    - name: Enregistrer le Witness auprès du Primary
+      command:
+        cmd: "/usr/bin/repmgr -f /etc/postgresql/{{ postgresql_version }}/main/repmgr.conf witness register -h {{ groups['database'][0] }}"
+      become: yes
+      become_user: postgres
+      register: witness_reg
+      failed_when: witness_reg.rc != 0 and 'already registered' not in witness_reg.stderr
+  when: node_id == 3
+
+# --- SERVICE REPMGRD (Pour le failover auto) ---
+# Il faut lancer le démon repmgrd sur TOUS les nœuds
+
+- name: Configurer repmgrd (Systemd)
+  service:
+    name: "repmgrd"
+    state: started
+    enabled: yes
+
+# --- MONITORING POSTGRESQL ---
+
+- name: Installer Postgres Exporter
+  apt:
+    name: prometheus-postgres-exporter
+    state: present
+
+- name: Démarrer Postgres Exporter
+  service:
+    name: prometheus-postgres-exporter
+    state: started
+    enabled: yes

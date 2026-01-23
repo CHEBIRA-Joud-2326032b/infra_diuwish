@@ -1,0 +1,25 @@
+[server]
+# On écoute sur toutes les interfaces (VLAN 20)
+http_addr = 0.0.0.0
+http_port = 3000
+domain = monitor.diuwish.internal
+
+[security]
+# On change le mot de passe admin par défaut
+admin_user = {{ grafana_admin_user }}
+admin_password = {{ grafana_admin_password }}
+
+allow_sign_up = false
+
+disable_gravatar = true
+
+[auth.anonymous]
+enabled = false
+
+[users]
+# Les utilisateurs ne peuvent pas créer d'organisations
+allow_org_create = false
+
+[dashboards]
+# Nombre de versions à garder
+versions_to_keep = 20

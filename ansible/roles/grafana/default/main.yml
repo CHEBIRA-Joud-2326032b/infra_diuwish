@@ -1,0 +1,9 @@
+grafana_admin_user: "admin"
+grafana_admin_password: "{{ vault_grafana_password | default('FortressMonitor2026!') }}"
+grafana_url: "http://10.0.20.31:3000"
+
+grafana_dashboards:
+  - { id: '1860', revision: 'latest', name: 'node-exporter-full' }
+  - { id: '10174', revision: 'latest', name: 'powerdns' }
+  - { id: '12543', revision: 'latest', name: 'suricata' }
+  - { id: '12693', revision: 'latest', name: 'kea-dhcp' }

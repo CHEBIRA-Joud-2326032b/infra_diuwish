@@ -1,31 +1,39 @@
 # Infos pour MariaDB
 db_name: "powerdns"
-db_user: "pdns_user"
-db_password: "root"
+db_user: "pdns_admin"
+db_password: "{{ vault_db_password | default('SuperFortressPassword!123') }}" # Idéalement dans un Vault
 
-master_ip: "{{ groups['master'][0] }}"
-slave_ip: "{{ groups['slave'][0] }}"
+master_ip: "10.0.10.21"
+slave_ip: "10.0.10.22"
 
-zone_name: "DIUWISH.lan"
+# Nom de domaine interne
+zone_name: "diuwish.internal"
 
 dns_records:
-  - { name: "gateway", ip: "10.0.0.1", desc: "VIP Gateway Interne" }
+  # INFRA
+  - { name: "gateway", ip: "10.0.0.10", desc: "VIP Gateway" }
   - { name: "gateway-1", ip: "10.0.0.11", desc: "" }
   - { name: "gateway-2", ip: "10.0.0.12", desc: "" }
+  - { name: "ns1", ip: "10.0.10.21", desc: "DNS Primary" }
+  - { name: "ns2", ip: "10.0.10.22", desc: "DNS Secondary" }
   - { name: "dhcp-1", ip: "10.0.10.11", desc: "" }
   - { name: "dhcp-2", ip: "10.0.10.12", desc: "" }
-  - { name: "dns-1", ip: "10.0.10.21", desc: "" }
-  - { name: "dns-2", ip: "10.0.10.22", desc: "" }
-  - { name: "bastion", ip: "10.0.10.11", desc: "teleport" }
-  - { name: "soc", ip: "10.0.20.21", desc: "wazuh" }
-  - { name: "monitor", ip: "10.0.20.31", desc: "prometheus" }
-  - { name: "rke2-api", ip: "10.0.30.10", desc: "VIP Kube-VIB (LoadBalancer API)" }
-  - { name: "rke2-master-1", ip: "10.0.30.11", desc: "Master 1" }
-  - { name: "rke2-master-2", ip: "10.0.30.12", desc: "Master 2" }
-  - { name: "rke2-master-3", ip: "10.0.30.13", desc: "Master 3" }
-  - { name: "rke2-worker-1", ip: "10.0.30.21", desc: "Worker 1" }
-  - { name: "rke2-worker-2", ip: "10.0.30.22", desc: "Worker 2" }
-  - { name: "backup", ip: "10.0.40.21", desc: "" }
-  - { name: "db", ip: "10.0.40.10", desc: "VIP Database" }
-  - { name: "db-primary", ip: "10.0.40.11", desc: "" }
-  - { name: "db-standby", ip: "10.0.40.12", desc: "" }
+
+  # OPS / MGMT (VLAN 20)
+  - { name: "bastion", ip: "10.0.20.11", desc: "Teleport Entry" }
+  - { name: "soc", ip: "10.0.20.21", desc: "Wazuh" }
+  - { name: "monitor", ip: "10.0.20.31", desc: "Prometheus" }
+
+  # APP (VLAN 30)
+  - { name: "rke2-api", ip: "10.0.30.10", desc: "VIP RKE2 API" }
+  - { name: "rke2-m1", ip: "10.0.30.11", desc: "" }
+  - { name: "rke2-m2", ip: "10.0.30.12", desc: "" }
+  - { name: "rke2-m3", ip: "10.0.30.13", desc: "" }
+  - { name: "rke2-w1", ip: "10.0.30.21", desc: "" }
+  - { name: "rke2-w2", ip: "10.0.30.22", desc: "" }
+
+  # DATA (VLAN 40)
+  - { name: "db", ip: "10.0.40.10", desc: "VIP Postgres" }
+  - { name: "db-1", ip: "10.0.40.11", desc: "Primary" }
+  - { name: "db-2", ip: "10.0.40.12", desc: "Standby" }
+  - { name: "backup", ip: "10.0.40.21", desc: "PBS" }

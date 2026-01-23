@@ -1,18 +1,21 @@
 ---
-- name: Installer les dépendances
-  apt:
-    name: [ 'apt-transport-https', 'software-properties-common', 'wget' ]
-    state: present
+- name: Créer le dossier pour les keyrings
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
 
-- name: Ajouter la clé GPG de Grafana
-  apt_key:
+- name: Télécharger la clé GPG Grafana (Méthode Moderne)
+  get_url:
     url: https://apt.grafana.com/gpg.key
-    state: present
+    dest: /etc/apt/keyrings/grafana.gpg
+    mode: '0644'
 
 - name: Ajouter le dépôt Grafana
   apt_repository:
-    repo: "deb https://apt.grafana.com stable main"
+    repo: "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main"
     state: present
+    filename: grafana
 
 - name: Installer Grafana
   apt:
@@ -20,7 +23,9 @@
     state: present
     update_cache: yes
 
-- name: Lier Grafana à Prometheus automatiquement
+# --- CONFIGURATION (Provisioning) ---
+
+- name: Provisioning - Datasource Prometheus
   copy:
     dest: /etc/grafana/provisioning/datasources/prometheus.yml
     content: |
@@ -31,16 +36,54 @@
           access: proxy
           url: http://localhost:9090
           isDefault: true
+          editable: false # On empêche la modif via GUI
+
+- name: Provisioning - Dashboards Provider
+  copy:
+    dest: /etc/grafana/provisioning/dashboards/default.yml
+    content: |
+      apiVersion: 1
+      providers:
+        - name: 'Fortress Dashboards'
+          orgId: 1
+          folder: ''
+          type: file
+          disableDeletion: false
+          updateIntervalSeconds: 30 # Check les maj fichiers toutes les 30s
+          options:
+            path: /var/lib/grafana/dashboards
+
+- name: Créer le dossier de stockage des dashboards
+  file:
+    path: /var/lib/grafana/dashboards
+    state: directory
+    owner: grafana
+    group: grafana
+    mode: '0750'
+
+- name: Télécharger les Dashboards depuis Grafana.com (IaC)
+  # Astuce : On télécharge le JSON directement depuis l'API
+  get_url:
+    url: "https://grafana.com/api/dashboards/{{ item.id }}/revisions/{{ item.revision }}/download"
+    dest: "/var/lib/grafana/dashboards/{{ item.name }}.json"
+    owner: grafana
+    group: grafana
+  loop: "{{ grafana_dashboards }}"
+  register: dl_dashboards
+
+# --- SECURISATION ---
+
+- name: Configurer grafana.ini (Sécurité)
+  template:
+    src: grafana.ini.j2
+    dest: /etc/grafana/grafana.ini
+    owner: root
+    group: grafana
+    mode: '0640'
+  notify: Restart Grafana
 
 - name: Démarrer Grafana
   systemd:
     name: grafana-server
     state: started
     enabled: yes
-
-#Dans Grafana, va dans Dashboards -> Import et tape ces numéros (ce sont les IDs des modèles officiels)
-
-#1860 : Le dashboard parfait pour Node Exporter (CPU, RAM, Disque de tous tes serveurs).
-#14981 : Le dashboard pour WireGuard (ton VPN).
-#12543 : Le dashboard pour Suricata.
-#10174 : Le dashboard pour PowerDNS.

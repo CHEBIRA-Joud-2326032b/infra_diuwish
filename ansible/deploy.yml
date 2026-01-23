@@ -27,6 +27,7 @@
     monitored_processes:
       - suricata
   roles:
+    - keepalived # HA VIP 10.0.0.10, .20.10, etc.
     - wireguard
     - suricata
     - process_exporter
@@ -65,4 +66,34 @@
   become: yes
   roles:
     - prometheus_server
-    - grafana   
+    - grafana
+    - loki
+
+# 7. BASTION (Teleport)
+
+- name: Configuration du Bastion d'accès
+  hosts: bastion
+  become: yes
+  roles:
+    - bastion
+    - process_exporter
+
+# 8. WORKLOADS (K8S RKE2)
+
+- name: Configuration du Cluster Kubernetes RKE2
+  hosts: rke2
+  become: yes
+  roles:
+    - rke2
+    - process_exporter
+
+- name: Deploiement des Applications (Sur Master 1 uniquement)
+  hosts: master
+  become: yes
+  vars:
+    # On force l'exécution sur un seul nœud pour éviter les conflits Helm/K8s
+    run_apps: "{{ inventory_hostname == groups['master'][0] }}"
+  tasks:
+    - import_role:
+        name: apps
+      when: run_apps | bool

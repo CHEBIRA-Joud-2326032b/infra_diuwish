@@ -1,0 +1,9 @@
+---
+- name: Configure NTP (Chrony)
+  import_tasks: ntp.yml
+
+- name: Configure Log Shipping (Promtail)
+  import_tasks: logging.yml
+
+- name: Configure Backup Client (PBS)
+  import_tasks: backup.yml

@@ -1,4 +1,5 @@
----
-kea_exporter_version: "0.6.0"
-kea_exporter_port: 9547
+
 kea_control_socket: "/run/kea/kea-dhcp4-ctrl.sock"
+kea_exporter_port: 9547
+kea_exporter_version: "0.6.0"
+process_exporter_version: "0.7.10"

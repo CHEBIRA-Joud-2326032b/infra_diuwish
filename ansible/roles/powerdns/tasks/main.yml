@@ -1,66 +1,82 @@
 ---
-- name: MariaDB PowerDNS install
+- name: Installer la stack PowerDNS Backend MySQL
   apt:
-    name: 
+    name:
       - mariadb-server
       - pdns-server
       - pdns-backend-mysql
-      - python3-mysqldb  
+      - python3-pymysql
     state: present
     update_cache: yes
 
-- name: create bd
-  mysql_db:
+- name: Créer la base de données
+  community.mysql.mysql_db:
     name: "{{ db_name }}"
     state: present
     login_unix_socket: /var/run/mysqld/mysqld.sock
 
-- name: create db user
-  mysql_user:
+- name: Créer l'utilisateur SQL dédié
+  community.mysql.mysql_user:
     name: "{{ db_user }}"
     password: "{{ db_password }}"
     priv: "{{ db_name }}.*:ALL"
     state: present
     login_unix_socket: /var/run/mysqld/mysqld.sock
 
-- name: Vérifier si les tables existent
-  mysql_query:
+- name: Vérifier si la DB est initialisée
+  community.mysql.mysql_query:
     db: "{{ db_name }}"
     query: "SHOW TABLES;"
     login_unix_socket: /var/run/mysqld/mysqld.sock
   register: db_tables
 
-- name: Importer le schéma SQL si la base est vide
-  mysql_db:
+- name: Importer le schéma PowerDNS initial
+  community.mysql.mysql_db:
     name: "{{ db_name }}"
     state: import
     target: /usr/share/doc/pdns-backend-mysql/schema.mysql.sql
     login_unix_socket: /var/run/mysqld/mysqld.sock
   when: db_tables.query_result[0] | length == 0
 
-- name: Envoyer le fichier de config
+- name: Configurer le Master comme Supermaster sur le Slave
+  community.mysql.mysql_query:
+    db: "{{ db_name }}"
+    query: "INSERT IGNORE INTO supermasters (ip, nameserver, account) VALUES ('{{ master_ip }}', 'ns1.{{ zone_name }}', 'admin');"
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+  when: inventory_hostname in groups['slave']
+  notify: Redémarrer PowerDNS
+
+# --- CONFIG & SERVICE ---
+- name: Déployer pdns.conf
   template:
     src: pdns.conf.j2
     dest: /etc/powerdns/pdns.conf
+    owner: root
+    group: pdns
+    mode: '0640'
   notify: Redémarrer PowerDNS
 
-- name: Lancer PowerDNS
+- name: Activer et démarrer PowerDNS
   service:
     name: pdns
     state: started
     enabled: yes
 
-- name: Créer la zone DNS principale
+# --- ZONE & RECORDS (MASTER ONLY) ---
+- name: Créer la zone DNS Principale (Master uniquement)
   command: "pdnsutil create-zone {{ zone_name }} ns1.{{ zone_name }}"
   when: inventory_hostname in groups['master']
-  register: zone_result
+  register: zone_create
   failed_when: false
-  changed_when: "'Creating' in zone_result.stdout"
+  changed_when: "'Creating' in zone_create.stdout"
 
-# On ajoute tous les enregistrements de la liste sur le Master
-- name: Ajouter les enregistrements DNS
+- name: Peupler les enregistrements DNS
   command: "pdnsutil replace-rrset {{ zone_name }} {{ item.name }} A 3600 {{ item.ip }}"
   loop: "{{ dns_records }}"
   when: inventory_hostname in groups['master']
-  register: record_result
-  changed_when: "'replaced' in record_result.stdout or 'added' in record_result.stdout"
+  register: record_update
+  changed_when: "'replaced' in record_update.stdout"
+
+- name: Notifier le slave (Force AXFR)
+  command: "pdnsutil rectify-zone {{ zone_name }}"
+  when: inventory_hostname in groups['master'] and zone_create.changed

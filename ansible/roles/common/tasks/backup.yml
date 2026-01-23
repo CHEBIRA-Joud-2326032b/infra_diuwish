@@ -1,0 +1,15 @@
+---
+- name: Installer Proxmox Backup Client
+  apt:
+    name: proxmox-backup-client
+    state: present
+    update_cache: yes
+  # Nécessite l'ajout du dépôt PVE ou le téléchargement manuel du deb s'il n'est pas dans l'image cloud générique
+  # On ignore les erreurs si le dépôt manque pour cette étape simple
+  ignore_errors: yes
+
+- name: Configurer l'environnement de sauvegarde (pour cron)
+  lineinfile:
+    path: /root/.bashrc
+    line: "export PBS_PASSWORD={{ vault_pbs_password | default('DiuwishBackup2026') }}"
+    create: yes

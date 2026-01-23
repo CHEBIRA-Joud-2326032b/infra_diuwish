@@ -1,7 +1,8 @@
----
 postgresql_version: "16"
 postgresql_port: 5432
-db_name: "diuwish"
-db_user: "app_user"
-db_password: "password"
-allowed_network: "10.0.40.0/24"
+db_user: "diuwish_app"
+db_name: "diuwish_db"
+allowed_network: "10.0.0.0/16"
+
+repmgr_db: "repmgr"
+repmgr_user: "repmgr"

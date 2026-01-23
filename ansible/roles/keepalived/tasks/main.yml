@@ -1,0 +1,34 @@
+---
+- name: Install Keepalived
+  apt:
+    name: keepalived
+    state: present
+    update_cache: yes
+
+- name: Allow binding to non-local IP (for VIP)
+  sysctl:
+    name: net.ipv4.ip_nonlocal_bind
+    value: '1'
+    state: present
+    reload: yes
+
+- name: Configure Keepalived
+  template:
+    src: keepalived.conf.j2
+    dest: /etc/keepalived/keepalived.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart Keepalived
+
+- name: Start Keepalived Service
+  service:
+    name: keepalived
+    state: started
+    enabled: yes
+
+- name: Ensure VRRP protocol is allowed in firewall (if not already handled)
+  # This is a safety measure, assuming firewall role handles it, but good to be explicit or ensure it works.
+  # Since we use nftables via another role, we assume that role does its job (checked previously).
+  debug:
+    msg: "Ensure VRRP (IP protocol 112) is allowed in your NFTables configuration."
