@@ -20,6 +20,12 @@ func UserHandlerInit(service *service.UserService) *UserHandler {
 }
 
 func (h *UserHandler) HandleRegister(c *gin.Context) {
+	_, err := c.Cookie("Authorization")
+	if err == nil {
+		utils.Error(c, http.StatusForbidden, "Vous êtes déjà connecté")
+		return
+	}
+
 	var input models.RegisterInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -73,7 +79,7 @@ func (h *UserHandler) HandleLogin(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("Authorization", token, 60*15, "", "", false, true)
+	c.SetCookie("Authorization", token, 60*15, "/", "", false, true)
 	utils.Success(c, http.StatusOK, "Connexion réussie", user)
 }
 
